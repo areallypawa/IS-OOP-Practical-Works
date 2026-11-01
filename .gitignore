@@ -3,6 +3,9 @@
 *.class
 out/
 
+# Local runner
+run.ps1
+
 # Build tools
 target/
 build/
@@ -10,5 +13,6 @@ build/
 # IDE and OS
 .idea/
 .vscode/
+.zed/
 .DS_Store
 Thumbs.db
