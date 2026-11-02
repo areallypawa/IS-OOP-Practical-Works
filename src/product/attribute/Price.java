@@ -12,8 +12,8 @@ public class Price {
     }
 
     public void setValue(double value) {
-        if (value < 0) {
-            throw new IllegalArgumentException("Price cannot be negative");
+        if (!Double.isFinite(value) || value < 0) {
+            throw new IllegalArgumentException("Price must be a finite non-negative number");
         }
         this.value = value;
     }

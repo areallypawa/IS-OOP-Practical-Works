@@ -1,29 +1,36 @@
 package product.artifact;
+
 import product.Product;
 
-public class MagicalArtifact extends Product {
-    private String rarity;
+public abstract class MagicalArtifact extends Product {
+    private Rarity rarity;
     private boolean isCursed;
     private String ownerName;
     private int magicPower;
 
-    protected Artifacts(
+    protected MagicalArtifact(
         String name,
         double price,
         long quantity,
         double weight,
 
-        String rarity,
+        Rarity rarity,
         boolean isCursed,
         String ownerName,
         int magicPower
     ) {
-         super(name, price, quantity, weight);
-         // проверка на рарити из [common, lenegdary ...]
-         this.rarity = rarity;
-         this.isCursed = isCursed;
-         this.ownerName = ownerName;
-         // проверка на мощность от 0 до 100
-         this.magicPower = magicPower;
+        super(name, price, quantity, weight, "Magical artifact");
+
+        if (rarity == null) {
+            throw new IllegalArgumentException("Rarity cannot be null");
+        }
+        if (magicPower < 0 || magicPower > 100) {
+            throw new IllegalArgumentException("Magic power must be between 0 and 100");
+        }
+
+        this.rarity = rarity;
+        this.isCursed = isCursed;
+        this.ownerName = ownerName;
+        this.magicPower = magicPower;
     }
 }

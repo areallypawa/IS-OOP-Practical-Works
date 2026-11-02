@@ -12,8 +12,8 @@ public class Weight {
     }
 
     public void setValue(double value) {
-        if (value < 0) {
-            throw new IllegalArgumentException("Weight cannot be negative");
+        if (!Double.isFinite(value) || value < 0) {
+            throw new IllegalArgumentException("Weight must be a finite non-negative number");
         }
         this.value = value;
     }

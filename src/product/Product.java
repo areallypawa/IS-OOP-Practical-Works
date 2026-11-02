@@ -5,8 +5,9 @@ import product.attribute.Quantity;
 import product.attribute.Weight;
 
 public abstract class Product {
-    private long id = 1;
-    private static long nextId = 2;
+    private static long nextId = 1;
+
+    private final long id;
     private String name;
     private Price price;
     private Quantity quantity;
@@ -14,12 +15,12 @@ public abstract class Product {
     private String category;
 
     protected Product(String name, double price, long quantity, double weight, String category) {
+        this.id = nextId++;
         this.name = name;
         this.price = new Price(price);
         this.quantity = new Quantity(quantity);
         this.weight = new Weight(weight);
         this.category = category;
-        this.nextId++;
     }
 
     public abstract Product clone();
