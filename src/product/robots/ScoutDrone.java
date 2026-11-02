@@ -8,7 +8,7 @@ public class ScoutDrone extends RobotProduct {
     public ScoutDrone(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
         String model,
         int batteryCapacity,

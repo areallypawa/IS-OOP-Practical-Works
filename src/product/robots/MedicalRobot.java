@@ -8,7 +8,7 @@ public class MedicalRobot extends RobotProduct {
     public MedicalRobot(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
         String model,
         int batteryCapacity,

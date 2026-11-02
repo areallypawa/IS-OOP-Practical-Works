@@ -8,7 +8,7 @@ public class GameLicense extends DigitalProduct {
     public GameLicense(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
         String licenseKey,
         int fileSize,

@@ -8,7 +8,7 @@ public class QuantumCore extends MagicalArtifact {
     public QuantumCore(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
         Rarity rarity,
         boolean isCursed,

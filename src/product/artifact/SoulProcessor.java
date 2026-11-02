@@ -8,7 +8,7 @@ public class SoulProcessor extends MagicalArtifact {
     public SoulProcessor(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
         Rarity rarity,
         boolean isCursed,

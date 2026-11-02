@@ -8,7 +8,7 @@ public class NavigationModule extends DigitalProduct {
     public NavigationModule(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
         String licenseKey,
         int fileSize,

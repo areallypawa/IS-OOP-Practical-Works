@@ -10,7 +10,7 @@ public abstract class DigitalProduct extends Product {
     protected DigitalProduct(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
 
         String licenseKey,

@@ -10,7 +10,7 @@ public abstract class RobotProduct extends Product {
     protected RobotProduct(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
 
         String model,

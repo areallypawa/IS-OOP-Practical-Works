@@ -11,7 +11,7 @@ public abstract class MagicalArtifact extends Product {
     protected MagicalArtifact(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
 
         Rarity rarity,

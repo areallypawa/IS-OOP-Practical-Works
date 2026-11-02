@@ -8,7 +8,7 @@ public class MedicalAI extends DigitalProduct {
     public MedicalAI(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
         String licenseKey,
         int fileSize,

@@ -8,7 +8,7 @@ public class GuardianRobot extends RobotProduct {
     public GuardianRobot(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
         String model,
         int batteryCapacity,

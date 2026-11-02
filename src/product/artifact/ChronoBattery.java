@@ -8,7 +8,7 @@ public class ChronoBattery extends MagicalArtifact {
     public ChronoBattery(
         String name,
         double price,
-        long quantity,
+        int quantity,
         double weight,
         Rarity rarity,
         boolean isCursed,
