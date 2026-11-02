@@ -29,4 +29,11 @@ public abstract class RobotProduct extends Product {
         this.batteryCapacity = batteryCapacity;
         this.intelligenceLevel = intelligenceLevel;
     }
+
+    protected RobotProduct(RobotProduct source) {
+        super(source);
+        this.model = source.model;
+        this.batteryCapacity = source.batteryCapacity;
+        this.intelligenceLevel = source.intelligenceLevel;
+    }
 }

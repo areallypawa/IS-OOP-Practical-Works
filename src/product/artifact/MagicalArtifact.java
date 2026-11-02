@@ -33,4 +33,12 @@ public abstract class MagicalArtifact extends Product {
         this.ownerName = ownerName;
         this.magicPower = magicPower;
     }
+
+    protected MagicalArtifact(MagicalArtifact source) {
+        super(source);
+        this.rarity = source.rarity;
+        this.isCursed = source.isCursed;
+        this.ownerName = source.ownerName;
+        this.magicPower = source.magicPower;
+    }
 }

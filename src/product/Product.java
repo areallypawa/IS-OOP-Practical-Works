@@ -23,5 +23,15 @@ public abstract class Product {
         this.category = category;
     }
 
+    protected Product(Product source) {
+        this(
+            source.name,
+            source.price.getValue(),
+            source.quantity.getValue(),
+            source.weight.getValue(),
+            source.category
+        );
+    }
+
     public abstract Product clone();
 }
