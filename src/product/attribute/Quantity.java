@@ -1,17 +1,17 @@
 package product.attribute;
 
 public class Quantity {
-    private long value;
+    private int value;
 
-    public Quantity(long value) {
+    public Quantity(int value) {
         setValue(value);
     }
 
-    public long getValue() {
+    public int getValue() {
         return this.value;
     }
 
-    public void setValue(long value) {
+    public void setValue(int value) {
         if (value < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative");
         }

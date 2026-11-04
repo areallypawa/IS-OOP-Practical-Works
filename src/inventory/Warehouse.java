@@ -17,6 +17,32 @@ public class Warehouse implements Iterable<Product> {
         products = new ArrayList<>(maxSize);
     }
 
+    public Warehouse(Warehouse sourse) {
+        this(sourse.maxSize);
+        for(Product product: sourse.products) {
+            addProduct(product.clone());
+        }
+
+    }
+
+    public void transferFrom(Warehouse sourse) {
+        if (source == null) {
+               throw new IllegalArgumentException("Source warehouse cannot be null");
+        }
+        if (source == this) {
+            return;
+        }
+        if (products.size() + source.products.size() > maxSize) {
+                throw new IllegalStateException("Not enough space in target warehouse");
+        }
+
+        List<Product> productsToTransfer = new ArrayList<>(sourse.products);
+
+        for (Product product: productsToTransfer) {
+            product.transferTo(this);
+        }
+    }
+
     public void addProduct(Product product) {
         if (product == null) {
             throw new IllegalArgumentException("Product cannot be null");
@@ -74,7 +100,7 @@ public class Warehouse implements Iterable<Product> {
         if (category == null) {
             throw new IllegalArgumentException("Category cannot be null");
         }
-        
+
         List<Product> foundProducts = new ArrayList<>();
 
         for (Product product: products) {
@@ -90,15 +116,15 @@ public class Warehouse implements Iterable<Product> {
         if (!Double.isFinite(price) || price < 0) {
             throw new IllegalArgumentException("Price must be a finite non-negative number");
         }
-    
+
         List<Product> foundProducts = new ArrayList<>();
-    
+
         for (Product product : products) {
             if (Double.compare(product.getPrice(), price) == 0) {
                 foundProducts.add(product);
             }
         }
-    
+
         return foundProducts;
     }
 
