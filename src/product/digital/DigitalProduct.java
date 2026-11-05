@@ -39,4 +39,12 @@ public abstract class DigitalProduct extends Product {
         this.fileSize = source.fileSize;
         this.downloadUrl = source.downloadUrl;
     }
+
+    @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nLicense key: " + licenseKey
+            + "\nFile size: " + fileSize + " MB"
+            + "\nDownload URL: " + downloadUrl;
+    }
 }

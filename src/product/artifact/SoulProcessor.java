@@ -43,6 +43,14 @@ public class SoulProcessor extends MagicalArtifact {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nSoul name: " + soulName
+            + "\nEmotion level: " + emotionLevel + "%"
+            + "\nControl level: " + controlLevel + "%";
+    }
+
+    @Override
     public SoulProcessor clone() {
         return new SoulProcessor(this);
     }

@@ -39,6 +39,14 @@ public class MedicalRobot extends RobotProduct {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nOperation accuracy: " + operationAccuracy + "%"
+            + "\nSterile: " + sterile
+            + "\nMedicine capacity: " + medicineCapacity + " units";
+    }
+
+    @Override
     public MedicalRobot clone() {
         return new MedicalRobot(this);
     }

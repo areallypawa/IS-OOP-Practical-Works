@@ -42,6 +42,14 @@ public class CombatFirmware extends DigitalProduct {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nSupported weapons: " + supportedWeapons
+            + "\nAim accuracy: " + aimAccuracy + "%"
+            + "\nVersion: " + version;
+    }
+
+    @Override
     public CombatFirmware clone() {
         return new CombatFirmware(this);
     }

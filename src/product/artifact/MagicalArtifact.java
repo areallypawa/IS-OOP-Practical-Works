@@ -41,4 +41,13 @@ public abstract class MagicalArtifact extends Product {
         this.ownerName = source.ownerName;
         this.magicPower = source.magicPower;
     }
+
+    @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nRarity: " + rarity
+            + "\nCursed: " + isCursed
+            + "\nOwner: " + ownerName
+            + "\nMagic power: " + magicPower + "%";
+    }
 }

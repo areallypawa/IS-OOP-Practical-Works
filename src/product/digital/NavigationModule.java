@@ -39,6 +39,14 @@ public class NavigationModule extends DigitalProduct {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nMap count: " + mapCount
+            + "\nMaximum route distance: " + maximumRouteDistance + " km"
+            + "\nSupports unknown areas: " + supportsUnknownAreas;
+    }
+
+    @Override
     public NavigationModule clone() {
         return new NavigationModule(this);
     }

@@ -39,6 +39,14 @@ public class GameLicense extends DigitalProduct {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nPlatform: " + platform
+            + "\nMinimum age: " + minimumAge + "+"
+            + "\nMultiplayer: " + multiplayer;
+    }
+
+    @Override
     public GameLicense clone() {
         return new GameLicense(this);
     }

@@ -27,34 +27,37 @@ import product.Product;
 import product.artifact.Rarity;
 
 public final class ProductDialog {
-    private static final String[] PRODUCT_TYPES = {
-        "ChronoBattery",
-        "QuantumCore",
-        "SoulProcessor",
-        "CombatFirmware",
-        "GameLicense",
-        "MedicalAI",
-        "NavigationModule",
-        "GuardianRobot",
-        "MedicalRobot",
-        "ScoutDrone"
+    private static final String[] CATEGORIES = {
+        "Artifact", "Digital", "Robot"
+    };
+    private static final String[] ARTIFACT_TYPES = {
+        "ChronoBattery", "QuantumCore", "SoulProcessor"
+    };
+    private static final String[] DIGITAL_TYPES = {
+        "CombatFirmware", "GameLicense", "MedicalAI", "NavigationModule"
+    };
+    private static final String[] ROBOT_TYPES = {
+        "GuardianRobot", "MedicalRobot", "ScoutDrone"
     };
 
     private final JPanel rootPanel = new JPanel(new BorderLayout(8, 8));
     private final JPanel commonPanel = new JPanel(new GridLayout(0, 2, 8, 8));
     private final JPanel specificPanel = new JPanel(new GridLayout(0, 2, 8, 8));
-    private final JComboBox<String> typeBox = new JComboBox<>(PRODUCT_TYPES);
+    private final JComboBox<String> categoryBox = new JComboBox<>(CATEGORIES);
+    private final JComboBox<String> typeBox = new JComboBox<>();
     private final JComboBox<Rarity> rarityBox = new JComboBox<>(Rarity.values());
     private final Map<String, JTextField> textFields = new HashMap<>();
     private final Map<String, JCheckBox> checkBoxes = new HashMap<>();
 
     private ProductDialog() {
         addTextField(commonPanel, "Name", "name", "New product");
-        addTextField(commonPanel, "Price", "price", "1000.0");
+        addTextField(commonPanel, "Price (USD)", "price", "1000.0");
         addTextField(commonPanel, "Quantity", "quantity", "1");
-        addTextField(commonPanel, "Weight", "weight", "1.0");
+        addTextField(commonPanel, "Weight (kg)", "weight", "1.0");
 
         JPanel typePanel = new JPanel(new GridLayout(0, 2, 8, 8));
+        typePanel.add(new JLabel("Category:"));
+        typePanel.add(categoryBox);
         typePanel.add(new JLabel("Product type:"));
         typePanel.add(typeBox);
 
@@ -65,8 +68,25 @@ public final class ProductDialog {
         rootPanel.add(headerPanel, BorderLayout.NORTH);
         rootPanel.add(new JScrollPane(specificPanel), BorderLayout.CENTER);
 
+        categoryBox.addActionListener(event -> updateProductTypes());
         typeBox.addActionListener(event -> rebuildSpecificFields());
-        rebuildSpecificFields();
+        updateProductTypes();
+    }
+
+    private void updateProductTypes() {
+        String category = (String) categoryBox.getSelectedItem();
+        String[] types = switch (category) {
+            case "Artifact" -> ARTIFACT_TYPES;
+            case "Digital" -> DIGITAL_TYPES;
+            case "Robot" -> ROBOT_TYPES;
+            default -> throw new IllegalStateException("Unknown category: " + category);
+        };
+
+        typeBox.removeAllItems();
+        for (String type : types) {
+            typeBox.addItem(type);
+        }
+        typeBox.setSelectedIndex(0);
     }
 
     public static Product showDialog(Component parent) {
@@ -104,66 +124,71 @@ public final class ProductDialog {
         checkBoxes.clear();
 
         String type = (String) typeBox.getSelectedItem();
+        if (type == null) {
+            return;
+        }
+
+        textFields.get("name").setText(type);
 
         switch (type) {
             case "ChronoBattery" -> {
                 addArtifactFields();
-                addTextField(specificPanel, "Energy capacity", "energyCapacity", "5000");
+                addTextField(specificPanel, "Energy capacity (mAh)", "energyCapacity", "5000");
                 addTextField(specificPanel, "Compatible model", "compatibleModel", "Guardian-X");
-                addTextField(specificPanel, "Recharge rate", "rechargeRate", "50");
+                addTextField(specificPanel, "Recharge rate (mAh/min)", "rechargeRate", "50");
             }
             case "QuantumCore" -> {
                 addArtifactFields();
-                addTextField(specificPanel, "Computing power", "computingPower", "1000");
+                addTextField(specificPanel, "Computing power (TFLOPS)", "computingPower", "1000");
                 addTextField(specificPanel, "Compatible model", "compatibleModel", "Guardian-X");
-                addTextField(specificPanel, "Stability (0-100)", "stability", "90");
+                addTextField(specificPanel, "Stability (%)", "stability", "90");
             }
             case "SoulProcessor" -> {
                 addArtifactFields();
                 addTextField(specificPanel, "Soul name", "soulName", "Astra");
-                addTextField(specificPanel, "Emotion level (0-100)", "emotionLevel", "50");
-                addTextField(specificPanel, "Control level (0-100)", "controlLevel", "80");
+                addTextField(specificPanel, "Emotion level (%)", "emotionLevel", "50");
+                addTextField(specificPanel, "Control level (%)", "controlLevel", "80");
             }
             case "CombatFirmware" -> {
                 addDigitalFields();
                 addTextField(specificPanel, "Supported weapons", "supportedWeapons", "4");
-                addTextField(specificPanel, "Aim accuracy (0-100)", "aimAccuracy", "90");
+                addTextField(specificPanel, "Aim accuracy (%)", "aimAccuracy", "90");
                 addTextField(specificPanel, "Version", "version", "1.0");
             }
             case "GameLicense" -> {
                 addDigitalFields();
                 addTextField(specificPanel, "Platform", "platform", "PC");
-                addTextField(specificPanel, "Minimum age (0-18)", "minimumAge", "12");
+                addTextField(specificPanel, "Minimum age (years)", "minimumAge", "12");
                 addCheckBox(specificPanel, "Multiplayer", "multiplayer", true);
             }
             case "MedicalAI" -> {
                 addDigitalFields();
-                addTextField(specificPanel, "Diagnosis accuracy (0-100)", "diagnosisAccuracy", "95");
+                addTextField(specificPanel, "Diagnosis accuracy (%)", "diagnosisAccuracy", "95");
                 addTextField(specificPanel, "Procedure count", "procedureCount", "500");
                 addCheckBox(specificPanel, "Certified", "certified", true);
             }
             case "NavigationModule" -> {
                 addDigitalFields();
                 addTextField(specificPanel, "Map count", "mapCount", "100");
-                addTextField(specificPanel, "Maximum route distance", "maximumRouteDistance", "5000.0");
+                addTextField(specificPanel, "Maximum route distance (km)", "maximumRouteDistance", "5000.0");
                 addCheckBox(specificPanel, "Supports unknown areas", "supportsUnknownAreas", true);
             }
             case "GuardianRobot" -> {
                 addRobotFields();
-                addTextField(specificPanel, "Armor level (0-100)", "armorLevel", "80");
+                addTextField(specificPanel, "Armor level (%)", "armorLevel", "80");
                 addTextField(specificPanel, "Weapon slots", "weaponSlots", "4");
-                addTextField(specificPanel, "Security level (0-100)", "securityLevel", "90");
+                addTextField(specificPanel, "Security level (%)", "securityLevel", "90");
             }
             case "MedicalRobot" -> {
                 addRobotFields();
-                addTextField(specificPanel, "Operation accuracy (0-100)", "operationAccuracy", "95");
+                addTextField(specificPanel, "Operation accuracy (%)", "operationAccuracy", "95");
                 addCheckBox(specificPanel, "Sterile", "sterile", true);
-                addTextField(specificPanel, "Medicine capacity", "medicineCapacity", "100");
+                addTextField(specificPanel, "Medicine capacity (units)", "medicineCapacity", "100");
             }
             case "ScoutDrone" -> {
                 addRobotFields();
-                addTextField(specificPanel, "Scan range", "scanRange", "1000.0");
-                addTextField(specificPanel, "Movement speed", "movementSpeed", "60.0");
+                addTextField(specificPanel, "Scan range (m)", "scanRange", "1000.0");
+                addTextField(specificPanel, "Movement speed (km/h)", "movementSpeed", "60.0");
                 addCheckBox(specificPanel, "Night vision", "nightVision", true);
             }
             default -> throw new IllegalStateException("Unknown product type: " + type);
@@ -178,19 +203,19 @@ public final class ProductDialog {
         specificPanel.add(rarityBox);
         addCheckBox(specificPanel, "Cursed", "isCursed", false);
         addTextField(specificPanel, "Owner name", "ownerName", "Chronos Corporation");
-        addTextField(specificPanel, "Magic power (0-100)", "magicPower", "90");
+        addTextField(specificPanel, "Magic power (%)", "magicPower", "90");
     }
 
     private void addDigitalFields() {
         addTextField(specificPanel, "License key", "licenseKey", "LICENSE-001");
-        addTextField(specificPanel, "File size (1-1000)", "fileSize", "250");
+        addTextField(specificPanel, "File size (MB, 1-1000)", "fileSize", "250");
         addTextField(specificPanel, "Download URL", "downloadUrl", "https://example.com/product");
     }
 
     private void addRobotFields() {
         addTextField(specificPanel, "Model", "model", "RX-1");
-        addTextField(specificPanel, "Battery capacity", "batteryCapacity", "5000");
-        addTextField(specificPanel, "Intelligence level (0-100)", "intelligenceLevel", "80");
+        addTextField(specificPanel, "Battery capacity (mAh)", "batteryCapacity", "5000");
+        addTextField(specificPanel, "Intelligence level (%)", "intelligenceLevel", "80");
     }
 
     private Product createProduct() {

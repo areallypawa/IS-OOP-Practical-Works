@@ -39,6 +39,14 @@ public class MedicalAI extends DigitalProduct {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nDiagnosis accuracy: " + diagnosisAccuracy + "%"
+            + "\nProcedure count: " + procedureCount
+            + "\nCertified: " + certified;
+    }
+
+    @Override
     public MedicalAI clone() {
         return new MedicalAI(this);
     }

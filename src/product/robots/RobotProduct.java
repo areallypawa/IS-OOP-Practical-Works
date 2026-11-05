@@ -36,4 +36,12 @@ public abstract class RobotProduct extends Product {
         this.batteryCapacity = source.batteryCapacity;
         this.intelligenceLevel = source.intelligenceLevel;
     }
+
+    @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nModel: " + model
+            + "\nBattery capacity: " + batteryCapacity + " mAh"
+            + "\nIntelligence level: " + intelligenceLevel + "%";
+    }
 }

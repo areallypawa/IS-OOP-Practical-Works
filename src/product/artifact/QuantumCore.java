@@ -43,6 +43,14 @@ public class QuantumCore extends MagicalArtifact {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nComputing power: " + computingPower + " TFLOPS"
+            + "\nCompatible model: " + compatibleModel
+            + "\nStability: " + stability + "%";
+    }
+
+    @Override
     public QuantumCore clone() {
         return new QuantumCore(this);
     }

@@ -42,6 +42,14 @@ public class GuardianRobot extends RobotProduct {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nArmor level: " + armorLevel + "%"
+            + "\nWeapon slots: " + weaponSlots
+            + "\nSecurity level: " + securityLevel + "%";
+    }
+
+    @Override
     public GuardianRobot clone() {
         return new GuardianRobot(this);
     }

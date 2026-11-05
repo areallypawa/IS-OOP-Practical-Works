@@ -39,6 +39,14 @@ public class ScoutDrone extends RobotProduct {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nScan range: " + scanRange + " m"
+            + "\nMovement speed: " + movementSpeed + " km/h"
+            + "\nNight vision: " + nightVision;
+    }
+
+    @Override
     public ScoutDrone clone() {
         return new ScoutDrone(this);
     }

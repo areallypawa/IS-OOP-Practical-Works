@@ -79,6 +79,16 @@ public abstract class Product {
         this.price = new Price(newPrice.getValue());
     }
 
+    public String getDetails() {
+        return "ID: " + id
+            + "\nName: " + name
+            + "\nCategory: " + category
+            + "\nPrice: $" + price.getValue()
+            + "\nQuantity: " + quantity.getValue()
+            + "\nWeight: " + weight.getValue() + " kg"
+            + "\nType: " + getClass().getSimpleName();
+    }
+
     public final void transferTo(Warehouse other) {
         if (other == null) {
             throw new IllegalArgumentException("Target warehouse cannot be null");

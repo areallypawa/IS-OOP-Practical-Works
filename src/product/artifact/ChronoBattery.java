@@ -43,7 +43,20 @@ public class ChronoBattery extends MagicalArtifact {
     }
 
     @Override
+    public String getDetails() {
+        return super.getDetails()
+            + "\nEnergy capacity: " + energyCapacity + " mAh"
+            + "\nCompatible model: " + compatibleModel
+            + "\nRecharge rate: " + rechargeRate + " mAh/min";
+    }
+
+    @Override
     public ChronoBattery clone() {
         return new ChronoBattery(this);
     }
+
+    
+
+
+    
 }

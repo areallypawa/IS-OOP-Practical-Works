@@ -2,6 +2,8 @@ package ui;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JButton;
@@ -49,6 +51,15 @@ public class MainFrame extends JFrame {
         productTable.setFillsViewportHeight(true);
         productTable.setAutoCreateRowSorter(true);
         productTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        productTable.setToolTipText("Double-click a product to view all details");
+        productTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getClickCount() == 2 && productTable.getSelectedRow() >= 0) {
+                    runSafely(MainFrame.this::showSelectedProductDetails);
+                }
+            }
+        });
 
         warehouseBox.addActionListener(event -> switchWarehouse());
         updateView();
@@ -85,6 +96,7 @@ public class MainFrame extends JFrame {
         JButton priceButton = new JButton("Change price");
         JButton quantityButton = new JButton("Change quantity");
         JButton transferButton = new JButton("Transfer selected");
+        JButton detailsButton = new JButton("Show details");
         JButton searchButton = new JButton("Search");
 
         addButton.addActionListener(event -> runSafely(this::addProduct));
@@ -92,6 +104,7 @@ public class MainFrame extends JFrame {
         priceButton.addActionListener(event -> runSafely(this::changeSelectedPrice));
         quantityButton.addActionListener(event -> runSafely(this::changeSelectedQuantity));
         transferButton.addActionListener(event -> runSafely(this::transferSelectedProduct));
+        detailsButton.addActionListener(event -> runSafely(this::showSelectedProductDetails));
         searchButton.addActionListener(event -> runSafely(this::searchProducts));
 
         panel.add(addButton);
@@ -99,6 +112,7 @@ public class MainFrame extends JFrame {
         panel.add(priceButton);
         panel.add(quantityButton);
         panel.add(transferButton);
+        panel.add(detailsButton);
         panel.add(searchButton);
         return panel;
     }
@@ -214,6 +228,20 @@ public class MainFrame extends JFrame {
 
         product.transferTo(target.warehouse());
         updateView();
+    }
+
+    private void showSelectedProductDetails() {
+        Product product = getSelectedProduct();
+        JTextArea textArea = new JTextArea(product.getDetails(), 20, 45);
+        textArea.setEditable(false);
+        textArea.setCaretPosition(0);
+
+        JOptionPane.showMessageDialog(
+            this,
+            new JScrollPane(textArea),
+            product.getClass().getSimpleName() + " details",
+            JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
     private void searchProducts() {
