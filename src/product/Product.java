@@ -25,13 +25,13 @@ public abstract class Product {
         this.category = category;
     }
 
-    protected Product(Product source) {
+    protected Product(Product other) {
         this(
-            source.name,
-            source.price.getValue(),
-            source.quantity.getValue(),
-            source.weight.getValue(),
-            source.category
+            other.name,
+            other.price.getValue(),
+            other.quantity.getValue(),
+            other.weight.getValue(),
+            other.category
         );
     }
 

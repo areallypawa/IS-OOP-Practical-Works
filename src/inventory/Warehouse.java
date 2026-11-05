@@ -17,15 +17,15 @@ public class Warehouse implements Iterable<Product> {
         products = new ArrayList<>(maxSize);
     }
 
-    public Warehouse(Warehouse sourse) {
-        this(sourse.maxSize);
-        for(Product product: sourse.products) {
+    public Warehouse(Warehouse source) {
+        this(source.maxSize);
+        for (Product product : source.products) {
             addProduct(product.clone());
         }
 
     }
 
-    public void transferFrom(Warehouse sourse) {
+    public void transferFrom(Warehouse source) {
         if (source == null) {
                throw new IllegalArgumentException("Source warehouse cannot be null");
         }
@@ -36,7 +36,7 @@ public class Warehouse implements Iterable<Product> {
                 throw new IllegalStateException("Not enough space in target warehouse");
         }
 
-        List<Product> productsToTransfer = new ArrayList<>(sourse.products);
+        List<Product> productsToTransfer = new ArrayList<>(source.products);
 
         for (Product product: productsToTransfer) {
             product.transferTo(this);
@@ -155,6 +155,14 @@ public class Warehouse implements Iterable<Product> {
             product.attachToWarehouse(this);
             throw exception;
         }
+    }
+
+    public int size() {
+        return products.size();
+    }
+
+    public int getMaxSize() {
+        return maxSize;
     }
 
     @Override
