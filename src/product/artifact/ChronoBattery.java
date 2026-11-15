@@ -54,9 +54,4 @@ public class ChronoBattery extends MagicalArtifact {
     public ChronoBattery clone() {
         return new ChronoBattery(this);
     }
-
-    
-
-
-    
 }

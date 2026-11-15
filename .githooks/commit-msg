@@ -1,0 +1,40 @@
+#!/bin/sh
+
+commit_msg_file="$1"
+subject="$(sed -n '1p' "$commit_msg_file")"
+
+# Allow messages created automatically by Git.
+case "$subject" in
+    Merge\ *|Revert\ \"*|fixup\!\ *|squash\!\ *)
+        exit 0
+        ;;
+esac
+
+pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?(!)?: .+'
+
+if ! printf '%s\n' "$subject" | grep -Eq "$pattern"; then
+    cat >&2 <<'EOF'
+Invalid commit message.
+
+Use Conventional Commits format:
+  <type>(optional-scope): <description>
+
+Allowed types:
+  feat, fix, docs, style, refactor, perf, test,
+  build, ci, chore, revert
+
+Examples:
+  feat: add warehouse search
+  fix(ui): validate product price
+  refactor(factory)!: change product factory API
+EOF
+    exit 1
+fi
+
+subject_length=${#subject}
+if [ "$subject_length" -gt 72 ]; then
+    printf '%s\n' "Commit subject is too long: $subject_length characters (maximum 72)." >&2
+    exit 1
+fi
+
+exit 0

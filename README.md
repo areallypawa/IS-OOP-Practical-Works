@@ -139,3 +139,29 @@ ScoutDroneFactory ..> ScoutDrone : creates
 ```
 
 Каждая конкретная фабрика хранит специфическую конфигурацию продукта. Общие параметры товарной позиции (`name`, `price`, `quantity`, `weight`) передаются в `createProduct(...)`, после чего фабрика создаёт соответствующий конкретный `Product`.
+
+## Проверка сообщений коммитов
+
+Проект использует хук `.githooks/commit-msg` с форматом [Conventional Commits](https://www.conventionalcommits.org/):
+
+```text
+<type>(optional-scope): <description>
+```
+
+Допустимые типы: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+
+Примеры:
+
+```text
+feat: add warehouse search
+fix(ui): validate product price
+refactor(factory)!: change product factory API
+```
+
+После клонирования репозитория хук нужно включить один раз:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Заголовок коммита ограничен 72 символами. Merge-, revert-, fixup- и squash-коммиты, созданные Git, разрешены автоматически.
