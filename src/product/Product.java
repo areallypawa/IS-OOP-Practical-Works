@@ -3,7 +3,6 @@ package product;
 import inventory.Warehouse;
 import product.attribute.Price;
 import product.attribute.Quantity;
-import product.attribute.Weight;
 
 public abstract class Product {
     private static long nextId = 1;
@@ -12,17 +11,28 @@ public abstract class Product {
     private String name;
     private Price price;
     private Quantity quantity;
-    private Weight weight;
-    private String category;
+    private final ProductType type;
     private Warehouse warehouse;
 
     protected Product(String name, double price, int quantity, double weight, String category) {
+        this(
+            name,
+            price,
+            quantity,
+            ProductType.getType(category, weight, price)
+        );
+    }
+
+    private Product(String name, double price, int quantity, ProductType type) {
+        if (type == null) {
+            throw new IllegalArgumentException("Product type cannot be null");
+        }
+
         this.id = nextId++;
         this.name = name;
         this.price = new Price(price);
         this.quantity = new Quantity(quantity);
-        this.weight = new Weight(weight);
-        this.category = category;
+        this.type = type;
     }
 
     protected Product(Product other) {
@@ -30,8 +40,7 @@ public abstract class Product {
             other.name,
             other.price.getValue(),
             other.quantity.getValue(),
-            other.weight.getValue(),
-            other.category
+            other.type
         );
     }
 
@@ -52,11 +61,15 @@ public abstract class Product {
     }
 
     public double getWeight() {
-        return weight.getValue();
+        return type.getBaseWeight();
     }
 
     public String getCategory() {
-        return category;
+        return type.getCategory();
+    }
+
+    public ProductType getType() {
+        return type;
     }
 
     public void changeQuantity(int delta) {
@@ -82,10 +95,10 @@ public abstract class Product {
     public String getDetails() {
         return "ID: " + id
             + "\nName: " + name
-            + "\nCategory: " + category
+            + "\nCategory: " + type.getCategory()
             + "\nPrice: $" + price.getValue()
             + "\nQuantity: " + quantity.getValue()
-            + "\nWeight: " + weight.getValue() + " kg"
+            + "\nWeight: " + type.getBaseWeight() + " kg"
             + "\nType: " + getClass().getSimpleName();
     }
 

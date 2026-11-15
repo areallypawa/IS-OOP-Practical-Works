@@ -4,7 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class ProductType {
-    private static final Map<String, ProductType> TYPES = new HashMap<>();
+    private record TypeKey(String category, double baseWeight, double basePrice) {}
+
+    private static final Map<TypeKey, ProductType> TYPES = new HashMap<>();
 
     private final String category;
     private final double baseWeight;
@@ -28,13 +30,15 @@ public final class ProductType {
         validateNonNegativeFinite(baseWeight, "Base weight");
         validateNonNegativeFinite(basePrice, "Base price");
 
-        ProductType existingType = TYPES.get(category);
+        TypeKey key = new TypeKey(category, baseWeight, basePrice);
+        ProductType existingType = TYPES.get(key);
         if (existingType != null) {
             return existingType;
         }
-        ProductType newProduct = new ProductType(category, baseWeight, basePrice);
-        TYPES.put(category, newProduct);
-        return newProduct;
+
+        ProductType newType = new ProductType(category, baseWeight, basePrice);
+        TYPES.put(key, newType);
+        return newType;
     }
 
     public String getCategory() {
