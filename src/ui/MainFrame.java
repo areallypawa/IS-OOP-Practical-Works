@@ -1,11 +1,13 @@
 package ui;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.FlowLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -14,8 +16,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
+import javax.swing.JToggleButton;
+import demo.DemoData;
 import inventory.Warehouse;
 import product.Product;
 import product.attribute.Price;
@@ -28,14 +31,21 @@ public class MainFrame extends JFrame {
     private final JLabel statusLabel = new JLabel();
 
     public MainFrame() {
-        super("Laboratory Works");
+        super("Object‑oriented programming");
 
         WarehouseEntry initialWarehouse = new WarehouseEntry(
             "Warehouse 1",
             new Warehouse(100)
         );
+        WarehouseEntry demoWarehouse = new WarehouseEntry(
+            "Warehouse Demo",
+            DemoData.createDemoWarehouse()
+        );
+
         warehouses.add(initialWarehouse);
+        warehouses.add(demoWarehouse);
         warehouseBox.addItem(initialWarehouse);
+        warehouseBox.addItem(demoWarehouse);
 
         tableModel = new ProductTableModel(initialWarehouse.warehouse());
         productTable = new JTable(tableModel);
@@ -45,18 +55,23 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(8, 8));
 
-        JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Склад", createWarehousePanel());
-        tabs.addTab(
-            "Заказы",
-            new OrderPanel(this::currentWarehouse, this::updateView)
+        CardLayout contentLayout = new CardLayout();
+        JPanel contentPanel = new JPanel(contentLayout);
+        contentPanel.add(createWarehousePanel(), "warehouse");
+        contentPanel.add(
+            new OrderPanel(this::currentWarehouse, this::updateView),
+            "orders"
         );
-        add(tabs, BorderLayout.CENTER);
+
+        add(
+            createNavigationPanel(contentLayout, contentPanel),
+            BorderLayout.NORTH
+        );
+        add(contentPanel, BorderLayout.CENTER);
 
         productTable.setFillsViewportHeight(true);
         productTable.setAutoCreateRowSorter(true);
         productTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-        productTable.setToolTipText("Double-click a product to view all details");
         productTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
@@ -68,6 +83,31 @@ public class MainFrame extends JFrame {
 
         warehouseBox.addActionListener(event -> switchWarehouse());
         updateView();
+    }
+
+    private JPanel createNavigationPanel(
+        CardLayout contentLayout,
+        JPanel contentPanel
+    ) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JToggleButton warehouseButton = new JToggleButton("Склад");
+        JToggleButton ordersButton = new JToggleButton("Заказы");
+        ButtonGroup navigationGroup = new ButtonGroup();
+
+        navigationGroup.add(warehouseButton);
+        navigationGroup.add(ordersButton);
+        warehouseButton.setSelected(true);
+
+        warehouseButton.addActionListener(event ->
+            contentLayout.show(contentPanel, "warehouse")
+        );
+        ordersButton.addActionListener(event ->
+            contentLayout.show(contentPanel, "orders")
+        );
+
+        panel.add(warehouseButton);
+        panel.add(ordersButton);
+        return panel;
     }
 
     private JPanel createWarehousePanel() {
@@ -246,7 +286,7 @@ public class MainFrame extends JFrame {
 
     private void showSelectedProductDetails() {
         Product product = getSelectedProduct();
-        JTextArea textArea = new JTextArea(product.getDetails(), 28, 70);
+        JTextArea textArea = new JTextArea(product.getDetails(), 20, 60);
         textArea.setEditable(false);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
@@ -386,8 +426,7 @@ public class MainFrame extends JFrame {
         tableModel.refresh();
         WarehouseEntry current = currentEntry();
         statusLabel.setText(
-            "Warehouse: " + current.name()
-                + " | Products: " + current.warehouse().size()
+            "Products: " + current.warehouse().size()
                 + " / " + current.warehouse().getMaxSize()
         );
     }

@@ -50,8 +50,6 @@ public final class ProductDialog {
     private final Map<String, JCheckBox> checkBoxes = new HashMap<>();
 
     private ProductDialog() {
-        rootPanel.setPreferredSize(new Dimension(620, 620));
-
         addTextField(commonPanel, "Name", "name", "New product");
         addTextField(commonPanel, "Price (USD)", "price", "1000.0");
         addTextField(commonPanel, "Quantity", "quantity", "1");
@@ -73,6 +71,9 @@ public final class ProductDialog {
         categoryBox.addActionListener(event -> updateProductTypes());
         typeBox.addActionListener(event -> rebuildSpecificFields());
         updateProductTypes();
+
+        Dimension naturalSize = rootPanel.getPreferredSize();
+        rootPanel.setPreferredSize(new Dimension(620, naturalSize.height));
     }
 
     private void updateProductTypes() {

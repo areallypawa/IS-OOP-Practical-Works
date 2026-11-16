@@ -285,7 +285,7 @@ public class OrderPanel extends JPanel {
 
     private void showSelectedOrderDetails() {
         Order order = getSelectedOrder();
-        JTextArea textArea = new JTextArea(buildDetails(order), 30, 75);
+        JTextArea textArea = new JTextArea(buildDetails(order), 22, 65);
         textArea.setEditable(false);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
