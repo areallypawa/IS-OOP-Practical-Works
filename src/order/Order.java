@@ -14,7 +14,7 @@ import observer.Observer;
 import observer.OrderEvent;
 import product.Product;
 
-public class Order implements Observable {
+public class Order implements Observable, Comparable<Order> {
     private static long nextId = 1;
 
     private final long id;
@@ -25,6 +25,7 @@ public class Order implements Observable {
     private Delivery delivery;
     private final List<Discount> discounts = new ArrayList<>();
     private double totalPrice;
+    private long deliveryStateVersion;
     private boolean freeDelivery;
     private final List<Product> giftProducts = new ArrayList<>();
 
@@ -80,6 +81,10 @@ public class Order implements Observable {
         return delivery;
     }
 
+    public long getDeliveryStateVersion() {
+        return deliveryStateVersion;
+    }
+
     public List<Discount> getDiscounts() {
         return Collections.unmodifiableList(discounts);
     }
@@ -98,6 +103,7 @@ public class Order implements Observable {
         }
 
         this.delivery = delivery;
+        markDeliveryStateChanged();
         LoggingProxy.log(Source.ORDER, "Delivery assigned to order " + id);
     }
 
@@ -121,6 +127,7 @@ public class Order implements Observable {
         product.changeQuantity(-item.getQuantity());
         items.add(item);
         totalPrice += item.getTotalPrice();
+        markDeliveryStateChanged();
         LoggingProxy.log(Source.ORDER, "Item added to order " + id);
     }
 
@@ -140,8 +147,22 @@ public class Order implements Observable {
         items.remove(item);
         item.getSourceProduct().changeQuantity(item.getQuantity());
         totalPrice -= item.getTotalPrice();
+        markDeliveryStateChanged();
         LoggingProxy.log(Source.ORDER, "Item removed from order " + id);
         return true;
+    }
+
+    @Override
+    public int compareTo(Order other) {
+        if (other == null) {
+            throw new IllegalArgumentException("Order cannot be null");
+        }
+
+        int priceComparison = Double.compare(getTotalPrice(), other.getTotalPrice());
+        if (priceComparison != 0) {
+            return priceComparison;
+        }
+        return Long.compare(id, other.id);
     }
 
     @Override
@@ -163,6 +184,7 @@ public class Order implements Observable {
     
     public void makeDeliveryFree() {
         freeDelivery = true;
+        markDeliveryStateChanged();
     }
 
     private double calculateItemsTotal() {
@@ -185,6 +207,7 @@ public class Order implements Observable {
             giftProducts.remove(giftProducts.size() - 1);
             throw new IllegalStateException("Gift makes the selected delivery unavailable");
         }
+        markDeliveryStateChanged();
     }
 
     public double getTotalWeight() {
@@ -237,6 +260,7 @@ public class Order implements Observable {
 
         OrderStatus oldStatus = status;
         status = newStatus;
+        markDeliveryStateChanged();
 
         notifyObservers(new OrderEvent(id, oldStatus, newStatus, Instant.now()));
         LoggingProxy.log(
@@ -270,6 +294,7 @@ public class Order implements Observable {
             () -> discount.apply(this)
         );
         discounts.add(discount);
+        markDeliveryStateChanged();
     }
 
     public void reducePriceByRate(double rate) {
@@ -278,6 +303,11 @@ public class Order implements Observable {
         }
 
         totalPrice *= 1 - rate;
+        markDeliveryStateChanged();
+    }
+
+    private void markDeliveryStateChanged() {
+        deliveryStateVersion++;
     }
 
     private void ensureItemsMutable() {

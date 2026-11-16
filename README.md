@@ -220,9 +220,11 @@ class Order {
     -Delivery delivery
     -List~Discount~ discounts
     -double totalPrice
+    -long deliveryStateVersion
     +setDelivery(Delivery delivery) void
     +changeStatus(OrderStatus newStatus) void
     +applyDiscount(Discount discount) void
+    +compareTo(Order other) int
     +getTotalPrice() double
     +getTotalWeight() double
 }
@@ -278,7 +280,7 @@ class PostDelivery
 
 class DeliveryProxy {
     -Delivery realDelivery
-    -Map~Long, Double~ costCache
+    -Map~Long, CachedCost~ costCache
     +getCost(Order order) double
     +getEstimatedTime() String
     +isAvailable(Order order) boolean
@@ -376,7 +378,7 @@ DeliveryProxy ..> LoggingProxy : DELIVERY
 
 `OrderManager` подписывается на каждый созданный `Order`. При переходе заказа в `PAID` менеджер увеличивает оборот, а при переходе в `CANCELLED` восстанавливает количество исходных товаров. `OrderItem` сохраняет цену, вес и имя на момент создания, но также держит ссылку на исходный `Product` для изменения складского остатка.
 
-Варианты доставки реализуют единый интерфейс `Delivery`: курьер и почта ограничивают доступность по весу, а самовывоз доступен всегда. `DeliveryProxy` оборачивает выбранную реализацию, проверяет данные заказа и кэширует стоимость по идентификатору заказа.
+Варианты доставки реализуют единый интерфейс `Delivery`: курьер и почта ограничивают доступность по весу, а самовывоз доступен всегда. `DeliveryProxy` оборачивает выбранную реализацию, проверяет данные заказа и кэширует стоимость по идентификатору и версии состояния заказа. Изменение состава, доставки, скидок или статуса увеличивает версию и автоматически делает старое значение кэша недействительным.
 
 ---
 
@@ -389,7 +391,7 @@ DeliveryProxy ..> LoggingProxy : DELIVERY
 | **Prototype** | Каждый конкретный `Product` реализует `clone()`, а копирующий конструктор `Warehouse` создаёт глубокую копию товаров. |
 | **Flyweight** | `ProductType` хранит общие неизменяемые данные типа и переиспользует экземпляры с одинаковыми категорией, базовым весом и базовой ценой. |
 | **Strategy** | Реализации `Delivery` взаимозаменяемо определяют стоимость и доступность доставки; реализации `Discount` инкапсулируют разные способы применения скидки. |
-| **Proxy** | `DeliveryProxy` реализует тот же интерфейс, делегирует реальной доставке и добавляет проверки и кэш стоимости. `LoggingProxy` централизует журналирование операций разных подсистем. |
+| **Proxy** | `DeliveryProxy` реализует тот же интерфейс, делегирует реальной доставке и добавляет проверки и версионный кэш стоимости с автоматической инвалидацией. `LoggingProxy` централизует журналирование операций разных подсистем. |
 | **Observer** | `Order` выступает как `Observable`, создаёт `OrderEvent` при смене статуса и уведомляет `Observer`; `OrderManager` реагирует на событие. |
 
 ---
@@ -402,6 +404,7 @@ DeliveryProxy ..> LoggingProxy : DELIVERY
 |---|---|
 | `order + discount` | `order.applyDiscount(discount)` |
 | `delivery << order` | `order.assignTo(delivery)` |
+| `order1 < order2` | `order1.compareTo(order2) < 0` |
 | `ostream << order` | переопределённый `order.toString()` |
 | `shared_ptr<T>` | обычная ссылка на объект; временем жизни управляет сборщик мусора |
 | `const T&` | ссылка без копирования и неизменяемые представления через `Collections.unmodifiableList(...)` |

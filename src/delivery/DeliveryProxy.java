@@ -8,7 +8,7 @@ import order.Order;
 
 public final class DeliveryProxy implements Delivery {
     private final Delivery realDelivery;
-    private final Map<Long, Double> costCache = new HashMap<>();
+    private final Map<Long, CachedCost> costCache = new HashMap<>();
 
     public DeliveryProxy(Delivery realDelivery) {
         if (realDelivery == null) {
@@ -25,13 +25,21 @@ public final class DeliveryProxy implements Delivery {
             throw new IllegalStateException("Delivery is not available");
         }
 
-        Double cachedCost = costCache.get(order.getId());
-        if (cachedCost != null) {
+        long stateVersion = order.getDeliveryStateVersion();
+        CachedCost cachedCost = costCache.get(order.getId());
+        if (cachedCost != null && cachedCost.stateVersion() == stateVersion) {
             LoggingProxy.log(
                 Source.DELIVERY,
                 "Using cached cost for order " + order.getId()
             );
-            return cachedCost;
+            return cachedCost.cost();
+        }
+
+        if (cachedCost != null) {
+            LoggingProxy.log(
+                Source.DELIVERY,
+                "Invalidating cached cost for order " + order.getId()
+            );
         }
 
         double cost = LoggingProxy.call(
@@ -39,7 +47,7 @@ public final class DeliveryProxy implements Delivery {
             "Calculate cost for order " + order.getId(),
             () -> realDelivery.getCost(order)
         );
-        costCache.put(order.getId(), cost);
+        costCache.put(order.getId(), new CachedCost(stateVersion, cost));
         return cost;
     }
 
@@ -67,6 +75,8 @@ public final class DeliveryProxy implements Delivery {
     public int getCachedOrderCount() {
         return costCache.size();
     }
+
+    private record CachedCost(long stateVersion, double cost) {}
 
     private static void validateOrder(Order order) {
         if (order == null) {

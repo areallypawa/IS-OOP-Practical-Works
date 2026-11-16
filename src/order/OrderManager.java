@@ -84,11 +84,11 @@ public class OrderManager implements Observer {
         for (Order order : orders.values()) {
             OrderStatus status = order.getStatus();
             if (order.getCustomer().getId() == customer.getId()
-               && (status == OrderStatus.PENDING
-                   || status == OrderStatus.PAID
-                   || status == OrderStatus.SHIPPED)) {
-               count++;
-           }
+                && (status == OrderStatus.PENDING
+                    || status == OrderStatus.PAID
+                    || status == OrderStatus.SHIPPED)) {
+                count++;
+            }
         }
         return count;
     }
