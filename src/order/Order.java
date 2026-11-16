@@ -29,8 +29,10 @@ public class Order {
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Order must contain at least one item");
         }
-        if (items.contains(null)) {
-            throw new IllegalArgumentException("Order items cannot contain null");
+        for (OrderItem item : items) {
+            if (item == null) {
+                throw new IllegalArgumentException("Order items cannot contain null");
+            }
         }
 
         this.id = nextId++;

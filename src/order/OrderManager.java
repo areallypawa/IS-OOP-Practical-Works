@@ -31,8 +31,10 @@ public class OrderManager implements OrderStatusListener {
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Order must contain at least one item");
         }
-        if (items.contains(null)) {
-            throw new IllegalArgumentException("Order items cannot contain null");
+        for (OrderItem item : items) {
+            if (item == null) {
+                throw new IllegalArgumentException("Order items cannot contain null");
+            }
         }
         if (getActiveOrderCount(customer) >= maxActiveOrdersPerCustomer) {
             throw new IllegalStateException("Customer has reached the active order limit");
