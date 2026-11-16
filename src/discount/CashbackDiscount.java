@@ -8,9 +8,14 @@ public final class CashbackDiscount implements Discount {
     @Override
     public void apply(Order order) {
         validateOrder(order);
-        // TODO: add CASHBACK_RATE of the order price to the customer bonus balance.
-        throw new UnsupportedOperationException("Cashback discount is not implemented yet");
+
+        double cashback = order.getTotalPrice() * CASHBACK_RATE;
+
+        if (cashback > 0) {
+            order.getCustomer().addBonus(cashback);
+        }
     }
+
 
     private static void validateOrder(Order order) {
         if (order == null) {

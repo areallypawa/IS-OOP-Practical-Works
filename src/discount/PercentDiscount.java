@@ -8,8 +8,7 @@ public final class PercentDiscount implements Discount {
     @Override
     public void apply(Order order) {
         validateOrder(order);
-        // TODO: reduce the order price by DISCOUNT_RATE.
-        throw new UnsupportedOperationException("Percent discount is not implemented yet");
+        order.reducePriceByRate(DISCOUNT_RATE);
     }
 
     private static void validateOrder(Order order) {

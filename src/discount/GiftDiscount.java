@@ -16,9 +16,9 @@ public final class GiftDiscount implements Discount {
     @Override
     public void apply(Order order) {
         validateOrder(order);
-        // TODO: add giftProduct to the order without increasing its total price.
-        throw new UnsupportedOperationException("Gift discount is not implemented yet");
+        order.addGift(giftProduct);
     }
+
 
     private static void validateOrder(Order order) {
         if (order == null) {

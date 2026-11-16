@@ -1,6 +1,8 @@
 package order;
 
 import customer.Customer;
+import observer.Observer;
+import observer.OrderEvent;
 import product.Product;
 
 import java.util.ArrayList;
@@ -11,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class OrderManager implements OrderStatusListener {
+public class OrderManager implements Observer {
     private final Map<Long, Order> orders = new LinkedHashMap<>();
     private final Set<Long> customerIds = new LinkedHashSet<>();
     private final int maxActiveOrdersPerCustomer;
@@ -45,8 +47,8 @@ public class OrderManager implements OrderStatusListener {
         deductStock(itemSnapshot);
 
         Order order = new Order(customer, itemSnapshot);
-        order.addStatusListener(this);
         orders.put(order.getId(), order);
+        order.subscribe(this);
         customerIds.add(customer.getId());
         return order;
     }
@@ -76,7 +78,7 @@ public class OrderManager implements OrderStatusListener {
             throw new IllegalArgumentException("Customer cannot be null");
         }
         int count = 0;
-        for (Order order: orders.values()) {
+        for (Order order : orders.values()) {
             OrderStatus status = order.getStatus();
             if (order.getCustomer().getId() == customer.getId()
                && (status == OrderStatus.PENDING
@@ -89,11 +91,14 @@ public class OrderManager implements OrderStatusListener {
     }
 
     @Override
-    public void onStatusChanged(
-        Order order,
-        OrderStatus oldStatus,
-        OrderStatus newStatus
-    ) {
+    public void onOrderEvent(OrderEvent event) {
+        if (event == null) {
+            throw new IllegalArgumentException("Order event cannot be null");
+        }
+
+        Order order = findById(event.getOrderId());
+        OrderStatus newStatus = event.getNewStatus();
+
         if (newStatus == OrderStatus.PAID) {
             turnover += order.getTotalPrice();
         }

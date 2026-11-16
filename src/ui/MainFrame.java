@@ -14,6 +14,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import inventory.Warehouse;
 import product.Product;
@@ -27,7 +28,7 @@ public class MainFrame extends JFrame {
     private final JLabel statusLabel = new JLabel();
 
     public MainFrame() {
-        super("Warehouse Manager");
+        super("Laboratory Works");
 
         WarehouseEntry initialWarehouse = new WarehouseEntry(
             "Warehouse 1",
@@ -40,13 +41,17 @@ public class MainFrame extends JFrame {
         productTable = new JTable(tableModel);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1100, 600);
+        setSize(1200, 700);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(8, 8));
 
-        add(createHeaderPanel(), BorderLayout.NORTH);
-        add(new JScrollPane(productTable), BorderLayout.CENTER);
-        add(createProductActionsPanel(), BorderLayout.SOUTH);
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Лаба 1 — Склад", createWarehousePanel());
+        tabs.addTab(
+            "Лаба 2 — Заказы",
+            new OrderPanel(this::currentWarehouse, this::updateView)
+        );
+        add(tabs, BorderLayout.CENTER);
 
         productTable.setFillsViewportHeight(true);
         productTable.setAutoCreateRowSorter(true);
@@ -63,6 +68,15 @@ public class MainFrame extends JFrame {
 
         warehouseBox.addActionListener(event -> switchWarehouse());
         updateView();
+    }
+
+    private JPanel createWarehousePanel() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        panel.add(createHeaderPanel(), BorderLayout.NORTH);
+        panel.add(new JScrollPane(productTable), BorderLayout.CENTER);
+        panel.add(createProductActionsPanel(), BorderLayout.SOUTH);
+        return panel;
     }
 
     private JPanel createHeaderPanel() {

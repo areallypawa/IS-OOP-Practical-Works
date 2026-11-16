@@ -1,20 +1,24 @@
 package order;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import customer.Customer;
 import delivery.Delivery;
 import discount.Discount;
+import observer.Observable;
+import observer.Observer;
+import observer.OrderEvent;
 import product.Product;
 
-public class Order {
+public class Order implements Observable {
     private static long nextId = 1;
 
     private final long id;
     private final Customer customer;
     private final List<OrderItem> items;
-    private final List<OrderStatusListener> statusListeners = new ArrayList<>();
+    private final List<Observer> observers = new ArrayList<>();
     private OrderStatus status;
     private Delivery delivery;
     private final List<Discount> discounts = new ArrayList<>();
@@ -94,6 +98,64 @@ public class Order {
         this.delivery = delivery;
     }
 
+    public void assignTo(Delivery delivery) {
+        setDelivery(delivery);
+    }
+
+    public void addItem(OrderItem item) {
+        if (item == null) {
+            throw new IllegalArgumentException("Order item cannot be null");
+        }
+        ensureItemsMutable();
+
+        Product product = item.getSourceProduct();
+        if (product.getQuantity() < item.getQuantity()) {
+            throw new IllegalStateException(
+                "Not enough stock for product: " + product.getName()
+            );
+        }
+
+        product.changeQuantity(-item.getQuantity());
+        items.add(item);
+        totalPrice += item.getTotalPrice();
+    }
+
+    public boolean removeItem(OrderItem item) {
+        if (item == null) {
+            throw new IllegalArgumentException("Order item cannot be null");
+        }
+        ensureItemsMutable();
+
+        if (!items.contains(item)) {
+            return false;
+        }
+        if (items.size() == 1) {
+            throw new IllegalStateException("Order must contain at least one item");
+        }
+
+        items.remove(item);
+        item.getSourceProduct().changeQuantity(item.getQuantity());
+        totalPrice -= item.getTotalPrice();
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        String deliveryName = delivery == null
+            ? "not assigned"
+            : delivery.getClass().getSimpleName();
+
+        return "Order #" + id
+            + " {customer='" + customer.getName() + '\''
+            + ", status=" + status
+            + ", items=" + items.size()
+            + ", delivery=" + deliveryName
+            + ", discounts=" + discounts.size()
+            + ", gifts=" + giftProducts.size()
+            + ", totalPrice=" + getTotalPrice()
+            + '}';
+    }
+    
     public void makeDeliveryFree() {
         freeDelivery = true;
     }
@@ -114,6 +176,10 @@ public class Order {
         }
 
         giftProducts.add(product);
+        if (delivery != null && !delivery.isAvailable(this)) {
+            giftProducts.remove(giftProducts.size() - 1);
+            throw new IllegalStateException("Gift makes the selected delivery unavailable");
+        }
     }
 
     public double getTotalWeight() {
@@ -122,21 +188,26 @@ public class Order {
         for (OrderItem item : items) {
             result += item.getTotalWeight();
         }
+        for (Product giftProduct : giftProducts) {
+            result += giftProduct.getWeight();
+        }
 
         return result;
     }
 
-    public void addStatusListener(OrderStatusListener listener) {
-        if (listener == null) {
-            throw new IllegalArgumentException("Status listener cannot be null");
+    @Override
+    public void subscribe(Observer observer) {
+        if (observer == null) {
+            throw new IllegalArgumentException("Observer cannot be null");
         }
-        if (!statusListeners.contains(listener)) {
-            statusListeners.add(listener);
+        if (!observers.contains(observer)) {
+            observers.add(observer);
         }
     }
 
-    public void removeStatusListener(OrderStatusListener listener) {
-        statusListeners.remove(listener);
+    @Override
+    public void unsubscribe(Observer observer) {
+        observers.remove(observer);
     }
 
     public void changeStatus(OrderStatus newStatus) {
@@ -162,15 +233,20 @@ public class Order {
         OrderStatus oldStatus = status;
         status = newStatus;
 
-        notifyStatusListeners(oldStatus, newStatus);
+        notifyObservers(new OrderEvent(id, oldStatus, newStatus, Instant.now()));
     }
 
-    private void notifyStatusListeners(
-        OrderStatus oldStatus,
-        OrderStatus newStatus
-    ) {
-        for (OrderStatusListener listener : List.copyOf(statusListeners)) {
-            listener.onStatusChanged(this, oldStatus, newStatus);
+    @Override
+    public void notifyObservers(OrderEvent event) {
+        if (event == null) {
+            throw new IllegalArgumentException("Order event cannot be null");
+        }
+        if (event.getOrderId() != id) {
+            throw new IllegalArgumentException("Event belongs to another order");
+        }
+
+        for (Observer observer : List.copyOf(observers)) {
+            observer.onOrderEvent(event);
         }
     }
 
@@ -191,4 +267,14 @@ public class Order {
         totalPrice *= 1 - rate;
     }
 
+    private void ensureItemsMutable() {
+        if (status != OrderStatus.PENDING) {
+            throw new IllegalStateException("Only pending orders can be changed");
+        }
+        if (delivery != null || !discounts.isEmpty()) {
+            throw new IllegalStateException(
+                "Items cannot be changed after assigning delivery or applying discounts"
+            );
+        }
+    }
 }
