@@ -7,6 +7,8 @@ import java.util.List;
 import customer.Customer;
 import delivery.Delivery;
 import discount.Discount;
+import logging.LoggingProxy;
+import logging.LoggingProxy.Source;
 import observer.Observable;
 import observer.Observer;
 import observer.OrderEvent;
@@ -96,6 +98,7 @@ public class Order implements Observable {
         }
 
         this.delivery = delivery;
+        LoggingProxy.log(Source.ORDER, "Delivery assigned to order " + id);
     }
 
     public void assignTo(Delivery delivery) {
@@ -118,6 +121,7 @@ public class Order implements Observable {
         product.changeQuantity(-item.getQuantity());
         items.add(item);
         totalPrice += item.getTotalPrice();
+        LoggingProxy.log(Source.ORDER, "Item added to order " + id);
     }
 
     public boolean removeItem(OrderItem item) {
@@ -136,6 +140,7 @@ public class Order implements Observable {
         items.remove(item);
         item.getSourceProduct().changeQuantity(item.getQuantity());
         totalPrice -= item.getTotalPrice();
+        LoggingProxy.log(Source.ORDER, "Item removed from order " + id);
         return true;
     }
 
@@ -234,6 +239,10 @@ public class Order implements Observable {
         status = newStatus;
 
         notifyObservers(new OrderEvent(id, oldStatus, newStatus, Instant.now()));
+        LoggingProxy.log(
+            Source.ORDER,
+            "Order " + id + " status changed from " + oldStatus + " to " + newStatus
+        );
     }
 
     @Override
@@ -255,7 +264,11 @@ public class Order implements Observable {
             throw new IllegalArgumentException("Discount cannot be null");
         }
 
-        discount.apply(this);
+        LoggingProxy.run(
+            Source.DISCOUNT,
+            "Apply " + discount.getClass().getSimpleName() + " to order " + id,
+            () -> discount.apply(this)
+        );
         discounts.add(discount);
     }
 

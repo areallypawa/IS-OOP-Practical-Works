@@ -1,7 +1,7 @@
 package ui;
 
 import java.awt.BorderLayout;
-
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
@@ -285,13 +285,15 @@ public class OrderPanel extends JPanel {
 
     private void showSelectedOrderDetails() {
         Order order = getSelectedOrder();
-        JTextArea textArea = new JTextArea(buildDetails(order), 22, 55);
+        JTextArea textArea = new JTextArea(buildDetails(order), 30, 75);
         textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
         textArea.setCaretPosition(0);
 
         JOptionPane.showMessageDialog(
             this,
-            new JScrollPane(textArea),
+            textArea,
             "Order " + order.getId() + " details",
             JOptionPane.INFORMATION_MESSAGE
         );
@@ -371,9 +373,16 @@ public class OrderPanel extends JPanel {
         JSpinner quantitySpinner = new JSpinner(
             new SpinnerNumberModel(1, 1, product.getQuantity(), 1)
         );
+        JSpinner.DefaultEditor editor = (JSpinner.DefaultEditor) quantitySpinner.getEditor();
+        editor.getTextField().setHorizontalAlignment(JTextField.LEFT);
+        quantitySpinner.setPreferredSize(new Dimension(120, quantitySpinner.getPreferredSize().height));
+
+        JPanel quantityPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        quantityPanel.add(quantitySpinner);
+
         int result = JOptionPane.showConfirmDialog(
             this,
-            quantitySpinner,
+            quantityPanel,
             "Quantity (available: " + product.getQuantity() + ")",
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.PLAIN_MESSAGE

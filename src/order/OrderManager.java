@@ -1,6 +1,8 @@
 package order;
 
 import customer.Customer;
+import logging.LoggingProxy;
+import logging.LoggingProxy.Source;
 import observer.Observer;
 import observer.OrderEvent;
 import product.Product;
@@ -50,6 +52,7 @@ public class OrderManager implements Observer {
         orders.put(order.getId(), order);
         order.subscribe(this);
         customerIds.add(customer.getId());
+        LoggingProxy.log(Source.MANAGER, "Order " + order.getId() + " created");
         return order;
     }
 
@@ -106,6 +109,12 @@ public class OrderManager implements Observer {
         if (newStatus == OrderStatus.CANCELLED) {
             restoreStock(order.getItems());
         }
+
+        LoggingProxy.log(
+            Source.MANAGER,
+            "Processed " + event.getOldStatus() + " -> " + newStatus
+                + " for order " + order.getId()
+        );
     }
 
     private void validateStock(List<OrderItem> items) {

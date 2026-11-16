@@ -2,6 +2,8 @@ package delivery;
 
 import java.util.HashMap;
 import java.util.Map;
+import logging.LoggingProxy;
+import logging.LoggingProxy.Source;
 import order.Order;
 
 public final class DeliveryProxy implements Delivery {
@@ -25,12 +27,18 @@ public final class DeliveryProxy implements Delivery {
 
         Double cachedCost = costCache.get(order.getId());
         if (cachedCost != null) {
-            System.out.println("Using cached delivery cost for order " + order.getId());
+            LoggingProxy.log(
+                Source.DELIVERY,
+                "Using cached cost for order " + order.getId()
+            );
             return cachedCost;
         }
 
-        System.out.println("Calculating delivery cost for order " + order.getId());
-        double cost = realDelivery.getCost(order);
+        double cost = LoggingProxy.call(
+            Source.DELIVERY,
+            "Calculate cost for order " + order.getId(),
+            () -> realDelivery.getCost(order)
+        );
         costCache.put(order.getId(), cost);
         return cost;
     }

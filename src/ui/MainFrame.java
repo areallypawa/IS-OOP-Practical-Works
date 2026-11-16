@@ -46,9 +46,9 @@ public class MainFrame extends JFrame {
         setLayout(new BorderLayout(8, 8));
 
         JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Лаба 1 — Склад", createWarehousePanel());
+        tabs.addTab("Склад", createWarehousePanel());
         tabs.addTab(
-            "Лаба 2 — Заказы",
+            "Заказы",
             new OrderPanel(this::currentWarehouse, this::updateView)
         );
         add(tabs, BorderLayout.CENTER);
@@ -246,13 +246,15 @@ public class MainFrame extends JFrame {
 
     private void showSelectedProductDetails() {
         Product product = getSelectedProduct();
-        JTextArea textArea = new JTextArea(product.getDetails(), 20, 45);
+        JTextArea textArea = new JTextArea(product.getDetails(), 28, 70);
         textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
         textArea.setCaretPosition(0);
 
         JOptionPane.showMessageDialog(
             this,
-            new JScrollPane(textArea),
+            textArea,
             product.getClass().getSimpleName() + " details",
             JOptionPane.INFORMATION_MESSAGE
         );

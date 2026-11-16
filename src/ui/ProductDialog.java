@@ -2,6 +2,7 @@ package ui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +11,6 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import factory.ProductFactory;
 import factory.artifact.ChronoBatteryFactory;
@@ -50,6 +50,8 @@ public final class ProductDialog {
     private final Map<String, JCheckBox> checkBoxes = new HashMap<>();
 
     private ProductDialog() {
+        rootPanel.setPreferredSize(new Dimension(620, 620));
+
         addTextField(commonPanel, "Name", "name", "New product");
         addTextField(commonPanel, "Price (USD)", "price", "1000.0");
         addTextField(commonPanel, "Quantity", "quantity", "1");
@@ -66,7 +68,7 @@ public final class ProductDialog {
         headerPanel.add(commonPanel, BorderLayout.CENTER);
 
         rootPanel.add(headerPanel, BorderLayout.NORTH);
-        rootPanel.add(new JScrollPane(specificPanel), BorderLayout.CENTER);
+        rootPanel.add(specificPanel, BorderLayout.CENTER);
 
         categoryBox.addActionListener(event -> updateProductTypes());
         typeBox.addActionListener(event -> rebuildSpecificFields());
@@ -278,7 +280,7 @@ public final class ProductDialog {
         String key,
         String defaultValue
     ) {
-        JTextField field = new JTextField(defaultValue);
+        JTextField field = new JTextField(defaultValue, 22);
         textFields.put(key, field);
         panel.add(new JLabel(label + ":"));
         panel.add(field);
