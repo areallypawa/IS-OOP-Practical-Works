@@ -35,25 +35,32 @@ public class OrderManager implements Observer {
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Order must contain at least one item");
         }
-        for (OrderItem item : items) {
-            if (item == null) {
-                throw new IllegalArgumentException("Order items cannot contain null");
-            }
-        }
-        if (getActiveOrderCount(customer) >= maxActiveOrdersPerCustomer) {
+        Order order = new Order(customer, items);
+        registerOrder(order);
+        return order;
+    }
+
+    void validateNewOrder(Order order) {
+        if (getActiveOrderCount(order.getCustomer()) >= maxActiveOrdersPerCustomer) {
             throw new IllegalStateException("Customer has reached the active order limit");
         }
 
-        List<OrderItem> itemSnapshot = new ArrayList<>(items);
-        validateStock(itemSnapshot);
-        deductStock(itemSnapshot);
+        for (var entry : quantitiesByProduct(order.getItems()).entrySet()) {
+            Product product = entry.getKey();
+            if (product.getQuantity() < entry.getValue()) {
+                throw new IllegalStateException("Not enough stock for product: " + product.getName());
+            }
+        }
+    }
 
-        Order order = new Order(customer, itemSnapshot);
+    void registerOrder(Order order) {
+        validateNewOrder(order);
+        quantitiesByProduct(order.getItems()).forEach((product, count) ->
+            product.changeQuantity(-count.intValue()));
         orders.put(order.getId(), order);
         order.subscribe(this);
-        customerIds.add(customer.getId());
+        customerIds.add(order.getCustomer().getId());
         LoggingProxy.log(Source.MANAGER, "Order " + order.getId() + " created");
-        return order;
     }
 
     public Order findById(long orderId) {
@@ -117,20 +124,12 @@ public class OrderManager implements Observer {
         );
     }
 
-    private void validateStock(List<OrderItem> items) {
+    static Map<Product, Long> quantitiesByProduct(List<OrderItem> items) {
+        Map<Product, Long> quantities = new LinkedHashMap<>();
         for (OrderItem item : items) {
-            Product product = item.getSourceProduct();
-
-            if (product.getQuantity() < item.getQuantity()) {
-                throw new IllegalStateException( "Not enough stock for product: " + product.getName());
-            }
+            quantities.merge(item.getSourceProduct(), (long) item.getQuantity(), Long::sum);
         }
-    }
-
-    private void deductStock(List<OrderItem> items) {
-        for (OrderItem item : items) {
-            item.getSourceProduct().changeQuantity(-item.getQuantity());
-        }
+        return quantities;
     }
 
     private void restoreStock(List<OrderItem> items) {
