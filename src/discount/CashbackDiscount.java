@@ -1,18 +1,20 @@
 package discount;
 
+import java.math.BigDecimal;
 import order.Order;
+import product.attribute.Price;
 
 public final class CashbackDiscount implements Discount {
-    private static final double CASHBACK_RATE = 0.05;
+    private static final BigDecimal CASHBACK_RATE = new BigDecimal("0.05");
 
     @Override
     public void apply(Order order) {
         validateOrder(order);
 
-        double cashback = order.getTotalPrice() * CASHBACK_RATE;
+        double cashback = Price.multiply(order.getTotalPrice(), CASHBACK_RATE);
 
         if (cashback > 0) {
-            order.getCustomer().addBonus(cashback);
+            order.addCashback(cashback);
         }
     }
 

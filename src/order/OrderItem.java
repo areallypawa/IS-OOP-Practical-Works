@@ -1,6 +1,8 @@
 package order;
 
+import java.math.BigDecimal;
 import product.Product;
+import product.attribute.Price;
 
 public class OrderItem {
     private final Product sourceProduct;
@@ -54,7 +56,7 @@ public class OrderItem {
     }
 
     public double getTotalPrice() {
-        return unitPrice * quantity;
+        return Price.multiply(unitPrice, BigDecimal.valueOf(quantity));
     }
 
     public double getTotalWeight() {

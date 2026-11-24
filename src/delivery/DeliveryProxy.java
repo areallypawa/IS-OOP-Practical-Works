@@ -5,6 +5,7 @@ import java.util.Map;
 import logging.LoggingProxy;
 import logging.LoggingProxy.Source;
 import order.Order;
+import product.attribute.Price;
 
 public final class DeliveryProxy implements Delivery {
     private final Delivery realDelivery;
@@ -26,8 +27,10 @@ public final class DeliveryProxy implements Delivery {
         }
 
         long stateVersion = order.getDeliveryStateVersion();
+        long tariffVersion = getTariffVersion();
         CachedCost cachedCost = costCache.get(order.getId());
-        if (cachedCost != null && cachedCost.stateVersion() == stateVersion) {
+        if (cachedCost != null && cachedCost.stateVersion() == stateVersion
+            && cachedCost.tariffVersion() == tariffVersion) {
             LoggingProxy.log(
                 Source.DELIVERY,
                 "Using cached cost for order " + order.getId()
@@ -45,9 +48,9 @@ public final class DeliveryProxy implements Delivery {
         double cost = LoggingProxy.call(
             Source.DELIVERY,
             "Calculate cost for order " + order.getId(),
-            () -> realDelivery.getCost(order)
+            () -> Price.round(realDelivery.getCost(order))
         );
-        costCache.put(order.getId(), new CachedCost(stateVersion, cost));
+        costCache.put(order.getId(), new CachedCost(stateVersion, tariffVersion, cost));
         return cost;
     }
 
@@ -68,6 +71,11 @@ public final class DeliveryProxy implements Delivery {
         return realDelivery.isAvailable(order);
     }
 
+    @Override
+    public long getTariffVersion() {
+        return realDelivery.getTariffVersion();
+    }
+
     public void clearCache() {
         costCache.clear();
     }
@@ -76,7 +84,7 @@ public final class DeliveryProxy implements Delivery {
         return costCache.size();
     }
 
-    private record CachedCost(long stateVersion, double cost) {}
+    private record CachedCost(long stateVersion, long tariffVersion, double cost) {}
 
     private static void validateOrder(Order order) {
         if (order == null) {

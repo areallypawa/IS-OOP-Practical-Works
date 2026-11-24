@@ -7,6 +7,7 @@ import observer.Observer;
 import observer.OrderEvent;
 import product.Product;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -19,7 +20,7 @@ public class OrderManager implements Observer {
     private final Map<Long, Order> orders = new LinkedHashMap<>();
     private final Set<Long> customerIds = new LinkedHashSet<>();
     private final int maxActiveOrdersPerCustomer;
-    private double turnover;
+    private BigDecimal turnover = BigDecimal.ZERO;
 
     public OrderManager(int maxActiveOrdersPerCustomer) {
         if (maxActiveOrdersPerCustomer <= 0) {
@@ -45,7 +46,7 @@ public class OrderManager implements Observer {
             throw new IllegalStateException("Customer has reached the active order limit");
         }
 
-        for (var entry : quantitiesByProduct(order.getItems()).entrySet()) {
+        for (var entry : order.quantitiesByProduct().entrySet()) {
             Product product = entry.getKey();
             if (product.getQuantity() < entry.getValue()) {
                 throw new IllegalStateException("Not enough stock for product: " + product.getName());
@@ -55,7 +56,7 @@ public class OrderManager implements Observer {
 
     void registerOrder(Order order) {
         validateNewOrder(order);
-        quantitiesByProduct(order.getItems()).forEach((product, count) ->
+        order.quantitiesByProduct().forEach((product, count) ->
             product.changeQuantity(-count.intValue()));
         orders.put(order.getId(), order);
         order.subscribe(this);
@@ -76,7 +77,11 @@ public class OrderManager implements Observer {
     }
 
     public double getTurnover() {
-        return turnover;
+        return turnover.doubleValue();
+    }
+
+    public int getMaxActiveOrdersPerCustomer() {
+        return maxActiveOrdersPerCustomer;
     }
 
     public int getCustomerCount() {
@@ -110,11 +115,14 @@ public class OrderManager implements Observer {
         OrderStatus newStatus = event.getNewStatus();
 
         if (newStatus == OrderStatus.PAID) {
-            turnover += order.getTotalPrice();
+            turnover = turnover.add(BigDecimal.valueOf(order.getTotalPrice()));
         }
 
         if (newStatus == OrderStatus.CANCELLED) {
             restoreStock(order.getItems());
+            if (event.getOldStatus() == OrderStatus.PAID) {
+                turnover = turnover.subtract(BigDecimal.valueOf(order.getTotalPrice()));
+            }
         }
 
         LoggingProxy.log(
@@ -124,13 +132,6 @@ public class OrderManager implements Observer {
         );
     }
 
-    static Map<Product, Long> quantitiesByProduct(List<OrderItem> items) {
-        Map<Product, Long> quantities = new LinkedHashMap<>();
-        for (OrderItem item : items) {
-            quantities.merge(item.getSourceProduct(), (long) item.getQuantity(), Long::sum);
-        }
-        return quantities;
-    }
 
     private void restoreStock(List<OrderItem> items) {
         for (OrderItem item : items) {

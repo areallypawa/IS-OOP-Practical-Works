@@ -1,11 +1,14 @@
 package customer;
 
+import java.math.BigDecimal;
+import product.attribute.Price;
+
 public class Customer {
     private static long nextId = 1;
     private final long id;
     private final String name;
     private final String region;
-    private double bonusBalance;
+    private BigDecimal bonusBalance = BigDecimal.ZERO;
 
     public Customer(
         String name,
@@ -36,13 +39,21 @@ public class Customer {
     }
 
     public double getBonusBalance() {
-        return bonusBalance;
+        return bonusBalance.doubleValue();
     }
 
     public void addBonus(double amount) {
         if (!Double.isFinite(amount) || amount <= 0) {
             throw new IllegalArgumentException("Bonus amount must be finite and positive");
         }
-        bonusBalance += amount;
+        bonusBalance = bonusBalance.add(BigDecimal.valueOf(Price.round(amount)));
+    }
+
+    public void removeBonus(double amount) {
+        BigDecimal updated = bonusBalance.subtract(BigDecimal.valueOf(Price.round(amount)));
+        if (updated.signum() < 0) {
+            throw new IllegalStateException("Not enough bonus balance to refund cashback");
+        }
+        bonusBalance = updated;
     }
 }

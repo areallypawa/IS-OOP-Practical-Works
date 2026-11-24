@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
 import product.Product;
+import product.attribute.Price;
 
 public class Warehouse implements Iterable<Product> {
     private final List<Product> products;
@@ -113,9 +114,7 @@ public class Warehouse implements Iterable<Product> {
     }
 
     public List<Product> findByPrice(double price) {
-        if (!Double.isFinite(price) || price < 0) {
-            throw new IllegalArgumentException("Price must be a finite non-negative number");
-        }
+        price = Price.round(price);
 
         List<Product> foundProducts = new ArrayList<>();
 
@@ -167,7 +166,7 @@ public class Warehouse implements Iterable<Product> {
 
     @Override
     public Iterator<Product> iterator() {
-        return products.iterator();
+        return java.util.Collections.unmodifiableList(products).iterator();
     }
 
     public Product getFirst() {

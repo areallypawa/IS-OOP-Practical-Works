@@ -1,9 +1,12 @@
 package order;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import customer.Customer;
 import delivery.Delivery;
 import discount.Discount;
@@ -13,6 +16,7 @@ import observer.Observable;
 import observer.Observer;
 import observer.OrderEvent;
 import product.Product;
+import product.attribute.Price;
 
 public class Order implements Observable, Comparable<Order> {
     private static long nextId = 1;
@@ -27,6 +31,9 @@ public class Order implements Observable, Comparable<Order> {
     private double totalPrice;
     private long deliveryStateVersion;
     private boolean freeDelivery;
+    private double lastDeliveryCost;
+    private Double paidTotal;
+    private double cashback;
     private final List<Product> giftProducts = new ArrayList<>();
 
     public Order(Customer customer, List<OrderItem> items) {
@@ -66,7 +73,7 @@ public class Order implements Observable, Comparable<Order> {
     }
 
     public double getTotalPrice() {
-        return totalPrice + getDeliveryCost();
+        return paidTotal == null ? Price.round(totalPrice + getDeliveryCost()) : paidTotal;
     }
 
     public double getDeliveryCost() {
@@ -74,7 +81,10 @@ public class Order implements Observable, Comparable<Order> {
             return 0;
         }
 
-        return delivery.getCost(this);
+        if (paidTotal == null && status != OrderStatus.CANCELLED) {
+            lastDeliveryCost = Price.round(delivery.getCost(this));
+        }
+        return lastDeliveryCost;
     }
 
     public Delivery getDelivery() {
@@ -94,6 +104,7 @@ public class Order implements Observable, Comparable<Order> {
     }
 
     public void setDelivery(Delivery delivery) {
+        ensurePending();
         if (delivery == null) {
             throw new IllegalArgumentException("Delivery cannot be null");
         }
@@ -102,8 +113,18 @@ public class Order implements Observable, Comparable<Order> {
             throw new IllegalStateException("Delivery is not available for this order");
         }
 
+        Delivery previous = this.delivery;
+        double previousCost = lastDeliveryCost;
         this.delivery = delivery;
         markDeliveryStateChanged();
+        try {
+            getTotalPrice();
+        } catch (RuntimeException exception) {
+            this.delivery = previous;
+            lastDeliveryCost = previousCost;
+            markDeliveryStateChanged();
+            throw exception;
+        }
         LoggingProxy.log(Source.ORDER, "Delivery assigned to order " + id);
     }
 
@@ -124,9 +145,10 @@ public class Order implements Observable, Comparable<Order> {
             );
         }
 
+        double newTotal = Price.round(totalPrice + item.getTotalPrice());
         product.changeQuantity(-item.getQuantity());
         items.add(item);
-        totalPrice += item.getTotalPrice();
+        totalPrice = newTotal;
         markDeliveryStateChanged();
         LoggingProxy.log(Source.ORDER, "Item added to order " + id);
     }
@@ -144,9 +166,9 @@ public class Order implements Observable, Comparable<Order> {
             throw new IllegalStateException("Order must contain at least one item");
         }
 
-        items.remove(item);
         item.getSourceProduct().changeQuantity(item.getQuantity());
-        totalPrice -= item.getTotalPrice();
+        items.remove(item);
+        totalPrice = calculateItemsTotal();
         markDeliveryStateChanged();
         LoggingProxy.log(Source.ORDER, "Item removed from order " + id);
         return true;
@@ -183,6 +205,7 @@ public class Order implements Observable, Comparable<Order> {
     }
     
     public void makeDeliveryFree() {
+        ensurePending();
         freeDelivery = true;
         markDeliveryStateChanged();
     }
@@ -194,20 +217,27 @@ public class Order implements Observable, Comparable<Order> {
             result += item.getTotalPrice();
         }
 
-        return result;
+        return Price.round(result);
     }
 
     public void addGift(Product product) {
+        ensurePending();
         if (product == null) {
             throw new IllegalArgumentException("Gift product cannot be null");
         }
 
         giftProducts.add(product);
-        if (delivery != null && !delivery.isAvailable(this)) {
-            giftProducts.remove(giftProducts.size() - 1);
-            throw new IllegalStateException("Gift makes the selected delivery unavailable");
-        }
         markDeliveryStateChanged();
+        try {
+            if (delivery != null && !delivery.isAvailable(this)) {
+                throw new IllegalStateException("Gift makes the selected delivery unavailable");
+            }
+            getTotalPrice();
+        } catch (RuntimeException exception) {
+            giftProducts.remove(giftProducts.size() - 1);
+            markDeliveryStateChanged();
+            throw exception;
+        }
     }
 
     public double getTotalWeight() {
@@ -259,6 +289,25 @@ public class Order implements Observable, Comparable<Order> {
         }
 
         OrderStatus oldStatus = status;
+        if (newStatus == OrderStatus.PAID) {
+            if (delivery != null && !delivery.isAvailable(this)) {
+                throw new IllegalStateException("Delivery is not available for this order");
+            }
+            double amount = getTotalPrice();
+            if (cashback > 0) {
+                customer.addBonus(cashback);
+            }
+            paidTotal = amount;
+        } else if (newStatus == OrderStatus.SHIPPED) {
+            if (delivery == null || !delivery.isAvailable(this)) {
+                throw new IllegalStateException("Delivery is not available for this order");
+            }
+        } else if (newStatus == OrderStatus.CANCELLED) {
+            validateStockReturn();
+            if (oldStatus == OrderStatus.PAID && cashback > 0) {
+                customer.removeBonus(cashback);
+            }
+        }
         status = newStatus;
         markDeliveryStateChanged();
 
@@ -284,6 +333,7 @@ public class Order implements Observable, Comparable<Order> {
     }
 
     public void applyDiscount(Discount discount) {
+        ensurePending();
         if (discount == null) {
             throw new IllegalArgumentException("Discount cannot be null");
         }
@@ -298,22 +348,48 @@ public class Order implements Observable, Comparable<Order> {
     }
 
     public void reducePriceByRate(double rate) {
+        ensurePending();
         if (!Double.isFinite(rate) || rate < 0 || rate > 1) {
             throw new IllegalArgumentException("Rate must be between 0 and 1");
         }
 
-        totalPrice *= 1 - rate;
+        totalPrice = Price.multiply(totalPrice, BigDecimal.ONE.subtract(BigDecimal.valueOf(rate)));
         markDeliveryStateChanged();
+    }
+
+    public void addCashback(double amount) {
+        ensurePending();
+        cashback = Price.round(cashback + Price.round(amount));
+    }
+
+    Map<Product, Long> quantitiesByProduct() {
+        Map<Product, Long> quantities = new LinkedHashMap<>();
+        for (OrderItem item : items) {
+            quantities.merge(item.getSourceProduct(), (long) item.getQuantity(), Long::sum);
+        }
+        return quantities;
+    }
+
+    private void validateStockReturn() {
+        quantitiesByProduct().forEach((product, count) -> {
+            if (product.getQuantity() + count > Integer.MAX_VALUE) {
+                throw new IllegalStateException("Cannot return stock for product: " + product.getName());
+            }
+        });
     }
 
     private void markDeliveryStateChanged() {
         deliveryStateVersion++;
     }
 
-    private void ensureItemsMutable() {
+    private void ensurePending() {
         if (status != OrderStatus.PENDING) {
             throw new IllegalStateException("Only pending orders can be changed");
         }
+    }
+
+    private void ensureItemsMutable() {
+        ensurePending();
         if (delivery != null || !discounts.isEmpty()) {
             throw new IllegalStateException(
                 "Items cannot be changed after assigning delivery or applying discounts"

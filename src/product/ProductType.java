@@ -2,6 +2,7 @@ package product;
 
 import java.util.HashMap;
 import java.util.Map;
+import product.attribute.Price;
 
 public final class ProductType {
     private record TypeKey(String category, double baseWeight, double basePrice) {}
@@ -28,7 +29,7 @@ public final class ProductType {
     ) {
         category = normalizeCategory(category);
         validateNonNegativeFinite(baseWeight, "Base weight");
-        validateNonNegativeFinite(basePrice, "Base price");
+        basePrice = Price.round(basePrice);
 
         TypeKey key = new TypeKey(category, baseWeight, basePrice);
         ProductType existingType = TYPES.get(key);
