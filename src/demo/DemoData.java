@@ -12,6 +12,7 @@ import factory.robots.GuardianRobotFactory;
 import factory.robots.MedicalRobotFactory;
 import factory.robots.ScoutDroneFactory;
 import inventory.Warehouse;
+import java.util.Arrays;
 import java.util.List;
 import product.artifact.Rarity;
 
@@ -46,6 +47,20 @@ public final class DemoData {
     };
 
     private DemoData() {}
+
+    public static List<String> productTypes() {
+        return Arrays.stream(NAMES).map(name -> name.replace(" ", "")).toList();
+    }
+
+    public static ProductFactory productFactory(String type) {
+        List<String> types = productTypes();
+        for (int index = 0; index < types.size(); index++) {
+            if (types.get(index).equalsIgnoreCase(type)) {
+                return FACTORIES.get(index);
+            }
+        }
+        return null;
+    }
 
     public static Warehouse createDemoWarehouse() {
         Warehouse warehouse = new Warehouse(100);
