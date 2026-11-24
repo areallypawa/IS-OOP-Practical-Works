@@ -1,5 +1,6 @@
 package ui;
 
+import command.ShopConsole;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.FlowLayout;
@@ -44,10 +45,13 @@ public class MainFrame extends JFrame {
         CardLayout contentLayout = new CardLayout();
         JPanel contentPanel = new JPanel(contentLayout);
         contentPanel.add(createWarehousePanel(), "warehouse");
-        contentPanel.add(
-            new OrderPanel(shop, this::currentWarehouse, this::updateView),
-            "orders"
-        );
+        OrderPanel orders = new OrderPanel(shop, this::currentWarehouse, this::updateView);
+        contentPanel.add(orders, "orders");
+        contentPanel.add(new CommandPanel(new ShopConsole(shop), () -> {
+            refreshWarehouses();
+            updateView();
+            orders.refreshFromShop();
+        }), "commands");
 
         add(
             createNavigationPanel(contentLayout, contentPanel),
@@ -78,10 +82,12 @@ public class MainFrame extends JFrame {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JToggleButton warehouseButton = new JToggleButton("Склад");
         JToggleButton ordersButton = new JToggleButton("Заказы");
+        JToggleButton commandsButton = new JToggleButton("Команды");
         ButtonGroup navigationGroup = new ButtonGroup();
 
         navigationGroup.add(warehouseButton);
         navigationGroup.add(ordersButton);
+        navigationGroup.add(commandsButton);
         warehouseButton.setSelected(true);
 
         warehouseButton.addActionListener(event ->
@@ -91,8 +97,11 @@ public class MainFrame extends JFrame {
             contentLayout.show(contentPanel, "orders")
         );
 
+        commandsButton.addActionListener(event -> contentLayout.show(contentPanel, "commands"));
+
         panel.add(warehouseButton);
         panel.add(ordersButton);
+        panel.add(commandsButton);
         return panel;
     }
 
@@ -381,6 +390,13 @@ public class MainFrame extends JFrame {
     private void addWarehouse(String name) {
         warehouseBox.addItem(name);
         warehouseBox.setSelectedItem(name);
+    }
+
+    private void refreshWarehouses() {
+        List<String> names = shop.execute(ShopFacade::warehouseNames);
+        for (int index = warehouseBox.getItemCount(); index < names.size(); index++) {
+            warehouseBox.addItem(names.get(index));
+        }
     }
 
     private String currentWarehouse() {
