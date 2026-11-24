@@ -1,6 +1,6 @@
 # Практическая работа №2 — система заказов и доставки
 
-[← Вернуться к README](../README.md) · [Практическая работа №1](practical-work-1-summary.md)
+[← К README](../README.md) · [Работа №1](practical-work-1-summary.md) · **Работа №2** · [Работа №3](practical-work-3-summary.md)
 
 ## Цель работы
 
