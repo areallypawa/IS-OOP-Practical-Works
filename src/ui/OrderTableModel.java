@@ -1,33 +1,22 @@
 package ui;
 
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.table.AbstractTableModel;
 import delivery.Delivery;
 import order.Order;
-import order.OrderManager;
+
 
 public class OrderTableModel extends AbstractTableModel {
     private static final String[] COLUMNS = {
         "ID", "Customer", "Status", "Items", "Delivery", "Discounts", "Total"
     };
 
-    private final OrderManager orderManager;
-    private final List<Order> rows = new ArrayList<>();
+    private List<Order> rows = List.of();
 
-    public OrderTableModel(OrderManager orderManager) {
-        if (orderManager == null) {
-            throw new IllegalArgumentException("Order manager cannot be null");
-        }
-
-        this.orderManager = orderManager;
-        refresh();
-    }
-
-    public void refresh() {
-        rows.clear();
-        rows.addAll(orderManager.getOrders());
+    public void setOrders(List<Order> orders) {
+        rows = List.copyOf(orders);
         fireTableDataChanged();
     }
 

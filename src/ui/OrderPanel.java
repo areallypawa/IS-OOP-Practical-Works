@@ -23,20 +23,14 @@ import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import customer.Customer;
-import delivery.CourierDelivery;
-import delivery.Delivery;
-import delivery.DeliveryProxy;
-import delivery.PickupDelivery;
-import delivery.PostDelivery;
-import discount.CashbackDiscount;
-import discount.Discount;
-import discount.FreeDeliveryDiscount;
-import discount.GiftDiscount;
-import discount.PercentDiscount;
-import inventory.Warehouse;
+import shop.ShopCommand;
+import shop.ShopFacade;
+import shop.ShopFacade.DeliveryType;
+import shop.ShopFacade.DiscountType;
+import shop.ShopFacade.Promotion;
 import order.Order;
 import order.OrderItem;
-import order.OrderManager;
+import order.OrderMediator.Line;
 import order.OrderStatus;
 import product.Product;
 
@@ -46,17 +40,17 @@ public class OrderPanel extends JPanel {
         "Percent", "Cashback", "Free delivery", "Gift"
     };
 
-    private final Supplier<Warehouse> warehouseSupplier;
+    private final ShopFacade shop;
+    private final Supplier<String> warehouseSupplier;
     private final Runnable warehouseUpdateCallback;
-    private final OrderManager orderManager = new OrderManager(5);
-    private final List<Customer> customers = new ArrayList<>();
     private final JComboBox<CustomerChoice> customerBox = new JComboBox<>();
-    private final OrderTableModel tableModel = new OrderTableModel(orderManager);
+    private final OrderTableModel tableModel = new OrderTableModel();
     private final JTable orderTable = new JTable(tableModel);
     private final JLabel summaryLabel = new JLabel();
 
     public OrderPanel(
-        Supplier<Warehouse> warehouseSupplier,
+        ShopFacade shop,
+        Supplier<String> warehouseSupplier,
         Runnable warehouseUpdateCallback
     ) {
         if (warehouseSupplier == null) {
@@ -66,6 +60,7 @@ public class OrderPanel extends JPanel {
             throw new IllegalArgumentException("Warehouse update callback cannot be null");
         }
 
+        this.shop = shop;
         this.warehouseSupplier = warehouseSupplier;
         this.warehouseUpdateCallback = warehouseUpdateCallback;
 
@@ -88,8 +83,7 @@ public class OrderPanel extends JPanel {
             }
         });
 
-        addCustomer(new Customer("Demo customer", "Central"));
-        refreshView();
+        refreshFromShop();
     }
 
     private JPanel createHeaderPanel() {
@@ -155,8 +149,11 @@ public class OrderPanel extends JPanel {
             return;
         }
 
-        Customer customer = new Customer(nameField.getText(), regionField.getText());
-        addCustomer(customer);
+        String name = nameField.getText();
+        String region = regionField.getText();
+        Customer customer = shop.execute(api -> api.addCustomer(name, region));
+        refreshFromShop();
+        customerBox.setSelectedItem(new CustomerChoice(customer));
     }
 
     private void createOrder() {
@@ -171,8 +168,9 @@ public class OrderPanel extends JPanel {
             return;
         }
 
-        OrderItem item = new OrderItem(product, quantity);
-        Order order = orderManager.createOrder(customer, List.of(item));
+        String warehouse = currentWarehouse();
+        Line line = new Line(product.getId(), quantity);
+        Order order = shop.execute(api -> api.createOrder(warehouse, customer.getId(), List.of(line), null, null));
         refreshAfterChange(true);
         selectOrder(order);
     }
@@ -190,8 +188,9 @@ public class OrderPanel extends JPanel {
             return;
         }
 
-        OrderItem item = new OrderItem(product, quantity);
-        order.addItem(item);
+        String warehouse = currentWarehouse();
+        Line line = new Line(product.getId(), quantity);
+        shop.execute(ShopCommand.action(api -> api.addItem(warehouse, order.getId(), line)));
         refreshAfterChange(true);
     }
 
@@ -216,9 +215,7 @@ public class OrderPanel extends JPanel {
         }
 
         OrderItem item = choice.item();
-        if (!order.removeItem(item)) {
-            throw new IllegalStateException("Order item was not found");
-        }
+        shop.execute(ShopCommand.action(api -> api.removeItem(order.getId(), item)));
         refreshAfterChange(true);
     }
 
@@ -229,13 +226,13 @@ public class OrderPanel extends JPanel {
             return;
         }
 
-        Delivery delivery = switch (type) {
-            case "Courier" -> new CourierDelivery();
-            case "Pickup" -> new PickupDelivery();
-            case "Post" -> new PostDelivery();
+        DeliveryType delivery = switch (type) {
+            case "Courier" -> DeliveryType.COURIER;
+            case "Pickup" -> DeliveryType.PICKUP;
+            case "Post" -> DeliveryType.POST;
             default -> throw new IllegalStateException("Unknown delivery type: " + type);
         };
-        order.assignTo(new DeliveryProxy(delivery));
+        shop.execute(ShopCommand.action(api -> api.assignDelivery(order.getId(), delivery)));
         refreshView();
     }
 
@@ -246,21 +243,22 @@ public class OrderPanel extends JPanel {
             return;
         }
 
-        Discount discount = switch (type) {
-            case "Percent" -> new PercentDiscount();
-            case "Cashback" -> new CashbackDiscount();
-            case "Free delivery" -> new FreeDeliveryDiscount();
+        Promotion promotion = switch (type) {
+            case "Percent" -> new Promotion(DiscountType.PERCENT, 0);
+            case "Cashback" -> new Promotion(DiscountType.CASHBACK, 0);
+            case "Free delivery" -> new Promotion(DiscountType.FREE_DELIVERY, 0);
             case "Gift" -> {
                 Product gift = chooseProduct("Select gift product");
-                yield gift == null ? null : new GiftDiscount(gift);
+                yield gift == null ? null : new Promotion(DiscountType.GIFT, gift.getId());
             }
             default -> throw new IllegalStateException("Unknown discount type: " + type);
         };
-        if (discount == null) {
+        if (promotion == null) {
             return;
         }
 
-        order.applyDiscount(discount);
+        String warehouse = currentWarehouse();
+        shop.execute(ShopCommand.action(api -> api.applyDiscount(warehouse, order.getId(), promotion)));
         refreshView();
     }
 
@@ -279,7 +277,14 @@ public class OrderPanel extends JPanel {
             return;
         }
 
-        order.changeStatus(status);
+        long id = order.getId();
+        shop.execute(ShopCommand.action(switch (status) {
+            case PAID -> api -> api.confirmPayment(id);
+            case SHIPPED -> api -> api.ship(id);
+            case CANCELLED -> api -> api.cancel(id);
+            case DELIVERED -> api -> api.confirmDelivery(id);
+            case PENDING -> throw new IllegalArgumentException("Cannot change status to PENDING");
+        }));
         refreshAfterChange(status == OrderStatus.CANCELLED);
     }
 
@@ -348,7 +353,8 @@ public class OrderPanel extends JPanel {
 
     private Product chooseProduct(String title) {
         List<ProductChoice> choices = new ArrayList<>();
-        for (Product product : currentWarehouse()) {
+        String warehouse = currentWarehouse();
+        for (Product product : shop.execute(api -> api.products(warehouse))) {
             if (product.getQuantity() > 0) {
                 choices.add(new ProductChoice(product));
             }
@@ -421,8 +427,8 @@ public class OrderPanel extends JPanel {
         return tableModel.getOrderAt(orderTable.convertRowIndexToModel(viewRow));
     }
 
-    private Warehouse currentWarehouse() {
-        Warehouse warehouse = warehouseSupplier.get();
+    private String currentWarehouse() {
+        String warehouse = warehouseSupplier.get();
         if (warehouse == null) {
             throw new IllegalStateException("No warehouse selected");
         }
@@ -435,11 +441,13 @@ public class OrderPanel extends JPanel {
         }
     }
 
-    private void addCustomer(Customer customer) {
-        customers.add(customer);
-        CustomerChoice choice = new CustomerChoice(customer);
-        customerBox.addItem(choice);
-        customerBox.setSelectedItem(choice);
+    void refreshFromShop() {
+        Object selected = customerBox.getSelectedItem();
+        customerBox.removeAllItems();
+        shop.execute(ShopFacade::customers).forEach(customer -> customerBox.addItem(new CustomerChoice(customer)));
+        if (selected != null) {
+            customerBox.setSelectedItem(selected);
+        }
         refreshView();
     }
 
@@ -462,16 +470,17 @@ public class OrderPanel extends JPanel {
     }
 
     private void refreshView() {
-        tableModel.refresh();
+        tableModel.setOrders(shop.execute(ShopFacade::orders));
+        var stats = shop.execute(ShopFacade::statistics);
         summaryLabel.setText(
-            "Customers: " + customers.size()
-                + " | Orders: " + orderManager.getOrders().size()
-                + " | Turnover: " + formatMoney(orderManager.getTurnover())
+            "Customers with orders: " + stats.orderingCustomers()
+                + " | Orders: " + stats.orders()
+                + " | Net turnover: " + formatMoney(stats.turnover())
         );
     }
 
     private static String formatMoney(double value) {
-        return String.format("%.2f", value);
+        return String.format("%.2f USD", value);
     }
 
     private void runSafely(Runnable action) {

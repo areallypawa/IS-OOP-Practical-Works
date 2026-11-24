@@ -5,7 +5,6 @@ import java.awt.CardLayout;
 import java.awt.FlowLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
 import java.util.List;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -18,14 +17,14 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
-import demo.DemoData;
-import inventory.Warehouse;
 import product.Product;
 import product.attribute.Price;
+import shop.ShopFacade;
+import shop.ShopCommand;
 
 public class MainFrame extends JFrame {
-    private final List<WarehouseEntry> warehouses = new ArrayList<>();
-    private final JComboBox<WarehouseEntry> warehouseBox = new JComboBox<>();
+    private final ShopFacade shop = ShopFacade.demo();
+    private final JComboBox<String> warehouseBox = new JComboBox<>();
     private final ProductTableModel tableModel;
     private final JTable productTable;
     private final JLabel statusLabel = new JLabel();
@@ -33,21 +32,8 @@ public class MainFrame extends JFrame {
     public MainFrame() {
         super("Object‑oriented programming");
 
-        WarehouseEntry initialWarehouse = new WarehouseEntry(
-            "Warehouse 1",
-            new Warehouse(100)
-        );
-        WarehouseEntry demoWarehouse = new WarehouseEntry(
-            "Warehouse Demo",
-            DemoData.createDemoWarehouse()
-        );
-
-        warehouses.add(initialWarehouse);
-        warehouses.add(demoWarehouse);
-        warehouseBox.addItem(initialWarehouse);
-        warehouseBox.addItem(demoWarehouse);
-
-        tableModel = new ProductTableModel(initialWarehouse.warehouse());
+        shop.execute(ShopFacade::warehouseNames).forEach(warehouseBox::addItem);
+        tableModel = new ProductTableModel();
         productTable = new JTable(tableModel);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -59,7 +45,7 @@ public class MainFrame extends JFrame {
         JPanel contentPanel = new JPanel(contentLayout);
         contentPanel.add(createWarehousePanel(), "warehouse");
         contentPanel.add(
-            new OrderPanel(this::currentWarehouse, this::updateView),
+            new OrderPanel(shop, this::currentWarehouse, this::updateView),
             "orders"
         );
 
@@ -81,7 +67,7 @@ public class MainFrame extends JFrame {
             }
         });
 
-        warehouseBox.addActionListener(event -> switchWarehouse());
+        warehouseBox.addActionListener(event -> updateView());
         updateView();
     }
 
@@ -185,18 +171,16 @@ public class MainFrame extends JFrame {
             return;
         }
 
-        addWarehouse(new WarehouseEntry(
-            name.trim(),
-            new Warehouse(Integer.parseInt(sizeInput.trim()))
-        ));
+        int capacity = Integer.parseInt(sizeInput.trim());
+        addWarehouse(shop.execute(api -> api.createWarehouse(name, capacity)));
     }
 
     private void copyWarehouse() {
-        WarehouseEntry source = currentEntry();
+        String source = currentWarehouse();
         String name = JOptionPane.showInputDialog(
             this,
             "Name for warehouse copy:",
-            source.name() + " copy"
+            source + " copy"
         );
 
         if (name == null) {
@@ -206,37 +190,34 @@ public class MainFrame extends JFrame {
             throw new IllegalArgumentException("Warehouse name cannot be empty");
         }
 
-        addWarehouse(new WarehouseEntry(
-            name.trim(),
-            new Warehouse(source.warehouse())
-        ));
+        addWarehouse(shop.execute(api -> api.copyWarehouse(source, name)));
     }
 
     private void moveAllProducts() {
-        WarehouseEntry source = currentEntry();
-        WarehouseEntry target = chooseOtherWarehouse("Move all products to:");
+        String source = currentWarehouse();
+        String target = chooseOtherWarehouse("Move all products to:");
 
         if (target == null) {
             return;
         }
 
-        target.warehouse().transferFrom(source.warehouse());
+        shop.execute(ShopCommand.action(api -> api.transferAll(source, target)));
         updateView();
     }
 
     private void addProduct() {
-        Product product = ProductDialog.showDialog(this);
+        Product product = ProductDialog.showDialog(this, shop, currentWarehouse());
         if (product == null) {
             return;
         }
 
-        currentWarehouse().addProduct(product);
         updateView();
     }
 
     private void deleteSelectedProduct() {
         Product product = getSelectedProduct();
-        currentWarehouse().removeById(product.getId());
+        String warehouse = currentWarehouse();
+        shop.execute(ShopCommand.action(api -> api.removeProduct(warehouse, product.getId())));
         updateView();
     }
 
@@ -244,7 +225,7 @@ public class MainFrame extends JFrame {
         Product product = getSelectedProduct();
         String input = JOptionPane.showInputDialog(
             this,
-            "New price:",
+            "New price (USD):",
             product.getPrice()
         );
 
@@ -252,7 +233,9 @@ public class MainFrame extends JFrame {
             return;
         }
 
-        product.setPrice(new Price(Double.parseDouble(input.trim())));
+        String warehouse = currentWarehouse();
+        Price price = new Price(Double.parseDouble(input.trim()));
+        shop.execute(ShopCommand.action(api -> api.changePrice(warehouse, product.getId(), price)));
         updateView();
     }
 
@@ -268,19 +251,22 @@ public class MainFrame extends JFrame {
             return;
         }
 
-        product.changeQuantity(Integer.parseInt(input.trim()));
+        String warehouse = currentWarehouse();
+        int delta = Integer.parseInt(input.trim());
+        shop.execute(ShopCommand.action(api -> api.changeStock(warehouse, product.getId(), delta)));
         updateView();
     }
 
     private void transferSelectedProduct() {
         Product product = getSelectedProduct();
-        WarehouseEntry target = chooseOtherWarehouse("Transfer product to:");
+        String target = chooseOtherWarehouse("Transfer product to:");
 
         if (target == null) {
             return;
         }
 
-        product.transferTo(target.warehouse());
+        String source = currentWarehouse();
+        shop.execute(ShopCommand.action(api -> api.transferProduct(source, target, product.getId())));
         updateView();
     }
 
@@ -321,13 +307,11 @@ public class MainFrame extends JFrame {
             return;
         }
 
+        String warehouse = currentWarehouse();
         List<Product> results = switch (searchType) {
-            case "ID" -> {
-                Product product = currentWarehouse().findById(Long.parseLong(input.trim()));
-                yield product == null ? List.of() : List.of(product);
-            }
-            case "Category" -> currentWarehouse().findByCategory(input.trim());
-            case "Price" -> currentWarehouse().findByPrice(Double.parseDouble(input.trim()));
+            case "ID" -> shop.execute(api -> List.of(api.product(warehouse, Long.parseLong(input.trim()))));
+            case "Category" -> shop.execute(api -> api.productsByCategory(warehouse, input.trim()));
+            case "Price" -> shop.execute(api -> api.productsByPrice(warehouse, new Price(Double.parseDouble(input.trim()))));
             default -> throw new IllegalStateException("Unknown search type: " + searchType);
         };
 
@@ -373,17 +357,17 @@ public class MainFrame extends JFrame {
         return tableModel.getProductAt(modelRow);
     }
 
-    private WarehouseEntry chooseOtherWarehouse(String title) {
-        WarehouseEntry current = currentEntry();
-        WarehouseEntry[] options = warehouses.stream()
-            .filter(entry -> entry != current)
-            .toArray(WarehouseEntry[]::new);
+    private String chooseOtherWarehouse(String title) {
+        String current = currentWarehouse();
+        String[] options = shop.execute(ShopFacade::warehouseNames).stream()
+            .filter(name -> !name.equals(current))
+            .toArray(String[]::new);
 
         if (options.length == 0) {
             throw new IllegalStateException("Create another warehouse first");
         }
 
-        return (WarehouseEntry) JOptionPane.showInputDialog(
+        return (String) JOptionPane.showInputDialog(
             this,
             title,
             "Select warehouse",
@@ -394,41 +378,22 @@ public class MainFrame extends JFrame {
         );
     }
 
-    private void addWarehouse(WarehouseEntry entry) {
-        warehouses.add(entry);
-        warehouseBox.addItem(entry);
-        warehouseBox.setSelectedItem(entry);
+    private void addWarehouse(String name) {
+        warehouseBox.addItem(name);
+        warehouseBox.setSelectedItem(name);
     }
 
-    private void switchWarehouse() {
-        WarehouseEntry entry = (WarehouseEntry) warehouseBox.getSelectedItem();
-        if (entry == null) {
-            return;
-        }
-
-        tableModel.setWarehouse(entry.warehouse());
-        updateView();
-    }
-
-    private WarehouseEntry currentEntry() {
-        WarehouseEntry entry = (WarehouseEntry) warehouseBox.getSelectedItem();
-        if (entry == null) {
-            throw new IllegalStateException("No warehouse selected");
-        }
-        return entry;
-    }
-
-    private Warehouse currentWarehouse() {
-        return currentEntry().warehouse();
+    private String currentWarehouse() {
+        return (String) warehouseBox.getSelectedItem();
     }
 
     private void updateView() {
-        tableModel.refresh();
-        WarehouseEntry current = currentEntry();
-        statusLabel.setText(
-            "Products: " + current.warehouse().size()
-                + " / " + current.warehouse().getMaxSize()
-        );
+        String warehouse = currentWarehouse();
+        if (warehouse != null) {
+            tableModel.setProducts(shop.execute(api -> api.products(warehouse)));
+            var info = shop.execute(api -> api.warehouseInfo(warehouse));
+            statusLabel.setText("Products: " + info.size() + " / " + info.capacity());
+        }
     }
 
     private void runSafely(Runnable action) {
@@ -444,10 +409,4 @@ public class MainFrame extends JFrame {
         }
     }
 
-    private record WarehouseEntry(String name, Warehouse warehouse) {
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
 }

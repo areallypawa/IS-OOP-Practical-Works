@@ -1,9 +1,9 @@
 package ui;
 
-import java.util.ArrayList;
+
 import java.util.List;
 import javax.swing.table.AbstractTableModel;
-import inventory.Warehouse;
+
 import product.Product;
 
 public class ProductTableModel extends AbstractTableModel {
@@ -11,30 +11,10 @@ public class ProductTableModel extends AbstractTableModel {
         "ID", "Name", "Category", "Price", "Quantity", "Weight", "Type"
     };
 
-    private Warehouse warehouse;
-    private final List<Product> rows = new ArrayList<>();
+    private List<Product> rows = List.of();
 
-    public ProductTableModel(Warehouse warehouse) {
-        this.warehouse = warehouse;
-        refresh();
-    }
-
-    public void setWarehouse(Warehouse warehouse) {
-        if (warehouse == null) {
-            throw new IllegalArgumentException("Warehouse cannot be null");
-        }
-
-        this.warehouse = warehouse;
-        refresh();
-    }
-
-    public void refresh() {
-        rows.clear();
-
-        for (Product product : warehouse) {
-            rows.add(product);
-        }
-
+    public void setProducts(List<Product> products) {
+        rows = List.copyOf(products);
         fireTableDataChanged();
     }
 

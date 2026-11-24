@@ -25,6 +25,9 @@ import factory.robots.MedicalRobotFactory;
 import factory.robots.ScoutDroneFactory;
 import product.Product;
 import product.artifact.Rarity;
+import product.attribute.Price;
+import shop.ShopCommand;
+import shop.ShopFacade;
 
 public final class ProductDialog {
     private static final String[] CATEGORIES = {
@@ -92,7 +95,7 @@ public final class ProductDialog {
         typeBox.setSelectedIndex(0);
     }
 
-    public static Product showDialog(Component parent) {
+    public static Product showDialog(Component parent, ShopFacade shop, String warehouse) {
         ProductDialog dialog = new ProductDialog();
 
         while (true) {
@@ -109,7 +112,7 @@ public final class ProductDialog {
             }
 
             try {
-                return dialog.createProduct();
+                return shop.execute(dialog.addProduct(warehouse));
             } catch (RuntimeException exception) {
                 JOptionPane.showMessageDialog(
                     parent,
@@ -221,7 +224,7 @@ public final class ProductDialog {
         addTextField(specificPanel, "Intelligence level (%)", "intelligenceLevel", "80");
     }
 
-    private Product createProduct() {
+    private ShopCommand<Product> addProduct(String warehouse) {
         String type = (String) typeBox.getSelectedItem();
         ProductFactory factory = switch (type) {
             case "ChronoBattery" -> new ChronoBatteryFactory(
@@ -267,12 +270,11 @@ public final class ProductDialog {
             default -> throw new IllegalStateException("Unknown product type: " + type);
         };
 
-        return factory.createProduct(
-            text("name"),
-            decimal("price"),
-            integer("quantity"),
-            decimal("weight")
-        );
+        String name = text("name");
+        Price price = new Price(decimal("price"));
+        int quantity = integer("quantity");
+        double weight = decimal("weight");
+        return shop -> shop.addProduct(warehouse, factory, name, price, quantity, weight);
     }
 
     private void addTextField(
